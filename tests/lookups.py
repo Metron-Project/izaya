@@ -47,3 +47,14 @@ class ColorLookup(Lookup):
 
     def get_selected(self, keys):
         return [(key, self.colors[key]) for key in keys if key in self.colors]
+
+
+@register
+class MarkupLookup(Lookup):
+    min_length = 1
+
+    def search(self, query, request):
+        return [("1", "<b>bold</b>")]
+
+    def get_selected(self, keys):
+        return []

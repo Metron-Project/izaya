@@ -119,3 +119,5 @@ uv sync
 uv run pytest
 uv run ruff check .
 ```
+
+The browser tests in `tests/test_browser.py` need Firefox and are skipped without it.

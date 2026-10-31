@@ -1,0 +1,12 @@
+{% load static %}<!doctype html>
+<html>
+  <head>
+    <title>izaya</title>
+    {{ form.media }}
+    <script src="{% static 'htmx.min.js' %}"></script>
+    <style>.box { display: block; }</style>
+  </head>
+  <body>
+    <form id="form">{{ form.as_div }}</form>
+  </body>
+</html>
