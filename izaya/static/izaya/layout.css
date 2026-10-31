@@ -1,0 +1,15 @@
+/* Optional. Floats the results over the page; everything else is left to the host site. */
+.izaya {
+  position: relative;
+}
+
+.izaya-listbox {
+  position: absolute;
+  z-index: 10;
+  left: 0;
+  right: 0;
+  max-height: 20rem;
+  overflow-y: auto;
+  background: Canvas;
+  color: CanvasText;
+}
