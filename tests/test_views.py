@@ -1,7 +1,7 @@
 import pytest
 from django.urls import reverse
 
-from .models import Character
+from .models import Character, Team
 
 pytestmark = pytest.mark.django_db
 
@@ -84,3 +84,12 @@ def test_responses_are_not_cached(client):
     response = client.get(url("CharacterLookup"), {"q": "bat"})
     assert "no-store" in response.headers["Cache-Control"]
     assert "private" in response.headers["Cache-Control"]
+
+
+def test_duplicates_do_not_use_up_max_results(client):
+    family = Team.objects.create(name="Bat Family")
+    family.members.add(*(Character.objects.create(name=f"Bat {i}") for i in range(3)))
+    Team.objects.create(name="Bat Force")
+    response = client.get(url("TeamLookup"), {"q": "bat"})
+    assert response.text.count("data-izaya-key") == 2
+    assert "data-izaya-message" not in response.text

@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from functools import reduce
 from operator import or_
 
+from django.contrib.admin.utils import lookup_spawns_duplicates
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
@@ -65,8 +66,9 @@ class Lookup:
 class ModelLookup(Lookup):
     """Lookup over a Django model.
 
-    ``search_fields`` holds complete field lookups, such as ``name__icontains``, and a
-    record matches if any of them do. ``key_field`` names the unique field whose value is
+    ``search_fields`` holds complete text field lookups, such as ``name__icontains``, and a
+    record matches if any of them do. Each one receives the search text as is, so other
+    fields need a ``search`` override. ``key_field`` names the unique field whose value is
     submitted, and must match the form field's ``to_field_name``.
     """
 
@@ -93,7 +95,11 @@ class ModelLookup(Lookup):
         if not self.search_fields:
             raise ImproperlyConfigured(f"{type(self).__name__} must define search_fields.")
         conditions = [Q(**{field: query}) for field in self.search_fields]
-        return self.get_queryset(request).filter(reduce(or_, conditions))
+        queryset = self.get_queryset(request).filter(reduce(or_, conditions))
+        opts = self.model._meta
+        if any(lookup_spawns_duplicates(opts, field) for field in self.search_fields):
+            queryset = queryset.distinct()
+        return queryset
 
     def get_selected(self, keys):
         keys = [key for key in map(self._clean_key, keys) if key is not None]

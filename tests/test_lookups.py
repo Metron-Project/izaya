@@ -4,8 +4,14 @@ from django.core.exceptions import ImproperlyConfigured
 from izaya import Item, ModelLookup, register
 from izaya.lookups import registry
 
-from .lookups import CharacterLookup, ColorLookup, ImprintLookup, VisibleToStaffLookup
-from .models import Character, Imprint
+from .lookups import (
+    CharacterLookup,
+    ColorLookup,
+    ImprintLookup,
+    TeamLookup,
+    VisibleToStaffLookup,
+)
+from .models import Character, Imprint, Team
 
 
 def test_lookups_module_is_autodiscovered():
@@ -72,3 +78,17 @@ def test_key_field_is_used_for_items_and_selection():
     lookup = ImprintLookup()
     assert lookup.to_item(imprint) == Item("vertigo", "Vertigo")
     assert lookup.get_selected(["vertigo", "missing"]) == [imprint]
+
+
+@pytest.mark.django_db
+def test_search_across_a_to_many_relation_has_no_duplicates():
+    team = Team.objects.create(name="Bat Family")
+    team.members.add(
+        Character.objects.create(name="Batman"),
+        Character.objects.create(name="Batgirl"),
+    )
+    assert list(TeamLookup().search("bat", None)) == [team]
+
+
+def test_search_only_uses_distinct_when_it_is_needed():
+    assert "DISTINCT" not in str(CharacterLookup().search("bat", None).query)

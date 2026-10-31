@@ -1,6 +1,6 @@
 from izaya import Lookup, ModelLookup, register
 
-from .models import Character, Imprint
+from .models import Character, Imprint, Team
 
 
 @register
@@ -28,6 +28,13 @@ class VisibleToStaffLookup(ModelLookup):
 
     def get_queryset(self, request):
         return super().get_queryset(request).none()
+
+
+@register
+class TeamLookup(ModelLookup):
+    model = Team
+    search_fields = ["name__icontains", "members__name__icontains"]
+    max_results = 2
 
 
 @register

@@ -31,8 +31,10 @@ class ArcLookup(ModelLookup):
     search_fields = ["name__unaccent__icontains"]
 ```
 
-`search_fields` holds complete field lookups, and a record matches if any of them do. Use the
-lookup in a form, with `multiple=True` for a multi-select:
+`search_fields` holds complete field lookups on text fields, and a record matches if any of them
+do. Each lookup receives the search text as is, so a numeric lookup such as `pk__exact` fails on
+anything but a number. Override `search` to handle those. Use the lookup in a form, with
+`multiple=True` for a multi-select:
 
 ```python
 from izaya import LookupWidget
