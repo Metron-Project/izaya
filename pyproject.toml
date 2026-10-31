@@ -1,0 +1,38 @@
+[project]
+name = "izaya"
+version = "0.1.0"
+description = "An htmx-powered autocomplete widget for Django forms"
+readme = "README.md"
+authors = [
+    { name = "Brian Pepple", email = "bdpepple@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "django>=6.0.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.6,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-root = ""
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "tests.settings"
+django_find_project = false
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["RUF012"]
+
+[dependency-groups]
+dev = [
+    "pytest-django>=4.14.0",
+    "ruff>=0.17.3",
+]
