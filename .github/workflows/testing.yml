@@ -1,0 +1,46 @@
+name: Testing
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v6
+      - name: Check formatting
+        run: uv run ruff format --check .
+      - name: Run linter
+        run: uv run ruff check .
+
+  test:
+    name: Python ${{ matrix.python-version }}, Django ${{ matrix.django-version }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.14", "3.15"]
+        django-version: ["6.0", "6.1"]
+    runs-on: ubuntu-latest
+    env:
+      UV_PYTHON: ${{ matrix.python-version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v6
+      - name: Install project
+        run: uv sync --locked
+      # The browser tests skip without Firefox, so fail here rather than lose them silently.
+      - name: Check Firefox
+        run: firefox --version
+      - name: Run tests
+        run: uv run --with "django~=${{ matrix.django-version }}.0" pytest
