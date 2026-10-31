@@ -77,7 +77,7 @@ and `aria-selected`. Add your framework's classes with a setting, or with `class
 IZAYA_CLASSES = {
     "input": "input",
     "option": "dropdown-item",
-    "option_active": "is-active",
+    "option_active": "has-background-link has-text-white",
     "chip": "tag",
 }
 ```

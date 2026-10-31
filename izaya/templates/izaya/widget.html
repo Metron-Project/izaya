@@ -3,6 +3,7 @@
   <template data-izaya-chip-template>{% include "izaya/chip.html" with item=None %}</template>
   {# form="" keeps the search text out of the host form: it isn't submitted, and Enter doesn't submit. #}
   <input type="text" name="q" form="" role="combobox" autocomplete="off" aria-autocomplete="list" aria-expanded="false" aria-controls="{{ widget.listbox_id }}" data-izaya-input hx-get="{{ widget.search_url }}" hx-trigger="input changed delay:250ms" hx-target="next [data-izaya-listbox]" hx-swap="innerHTML" hx-sync="this:replace" hx-params="q" {% include "django/forms/widgets/attrs.html" %}>
-  <div id="{{ widget.listbox_id }}" class="izaya-listbox {{ widget.classes.listbox }}" role="listbox"{% if widget.multiple %} aria-multiselectable="true"{% endif %} data-izaya-listbox hidden></div>
+  {# The inline display stops a framework class such as Bulma's .box from overriding hidden. #}
+  <div id="{{ widget.listbox_id }}" class="izaya-listbox {{ widget.classes.listbox }}" role="listbox"{% if widget.multiple %} aria-multiselectable="true"{% endif %} data-izaya-listbox hidden style="display: none;"></div>
   <div aria-live="polite" data-izaya-live style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;"></div>
 </div>

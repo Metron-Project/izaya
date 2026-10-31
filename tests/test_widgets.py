@@ -77,10 +77,11 @@ def test_classes_come_from_settings_and_the_widget(settings):
     assert 'data-izaya-option-class="item"' in html
 
 
-def test_no_style_attribute_outside_the_live_region():
+def test_inline_styles_are_limited_to_hiding_elements():
     html = render(LookupWidget(CharacterLookup))
-    assert html.count("style=") == 1
+    assert html.count("style=") == 2
     assert 'data-izaya-live style="' in html
+    assert 'data-izaya-listbox hidden style="display: none;"' in html
 
 
 def test_disabled_submits_nothing_and_has_no_remove_button():

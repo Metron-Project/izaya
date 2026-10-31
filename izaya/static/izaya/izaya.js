@@ -20,13 +20,16 @@
     const input = part(root, "input");
     const listbox = part(root, "listbox");
     listbox.hidden = true;
+    listbox.style.display = "none";
     listbox.replaceChildren();
     input.setAttribute("aria-expanded", "false");
     input.removeAttribute("aria-activedescendant");
   };
 
   const open = (root) => {
-    part(root, "listbox").hidden = false;
+    const listbox = part(root, "listbox");
+    listbox.hidden = false;
+    listbox.style.display = "";
     part(root, "input").setAttribute("aria-expanded", "true");
   };
 
