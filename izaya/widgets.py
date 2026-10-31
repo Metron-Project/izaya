@@ -27,7 +27,9 @@ class LookupWidget(forms.Widget):
         return False
 
     def value_from_datadict(self, data, files, name):
-        return data.getlist(name) if self.multiple else data.get(name)
+        if self.multiple and hasattr(data, "getlist"):
+            return data.getlist(name)
+        return data.get(name)
 
     def value_omitted_from_data(self, data, files, name):
         # Having nothing selected submits nothing, the same as <select multiple>.

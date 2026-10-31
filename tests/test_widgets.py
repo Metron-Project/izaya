@@ -96,6 +96,11 @@ def test_value_from_datadict():
     assert multiple.value_from_datadict(data, {}, "field") == ["1", "2"]
 
 
+def test_multiple_accepts_a_plain_dict():
+    multiple = LookupWidget(CharacterLookup, multiple=True)
+    assert multiple.value_from_datadict({"field": [1, 2]}, {}, "field") == [1, 2]
+
+
 def test_value_is_never_considered_omitted():
     assert LookupWidget(CharacterLookup).value_omitted_from_data({}, {}, "field") is False
 
