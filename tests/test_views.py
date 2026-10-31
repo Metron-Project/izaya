@@ -73,3 +73,14 @@ def test_access_is_enforced(client):
 
 def test_only_get_is_allowed(client):
     assert client.post(url("CharacterLookup")).status_code == 405
+
+
+def test_query_is_cut_to_max_query_length(client):
+    Character.objects.create(name="b" * 100)
+    assert "data-izaya-key" in client.get(url("CharacterLookup"), {"q": "b" * 1000}).text
+
+
+def test_responses_are_not_cached(client):
+    response = client.get(url("CharacterLookup"), {"q": "bat"})
+    assert "no-store" in response.headers["Cache-Control"]
+    assert "private" in response.headers["Cache-Control"]

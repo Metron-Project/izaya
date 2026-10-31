@@ -3,7 +3,7 @@ from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.urls import reverse
 
-from .lookups import registry
+from .lookups import ModelLookup, registry
 
 
 class LookupWidget(forms.Widget):
@@ -42,22 +42,40 @@ class LookupWidget(forms.Widget):
         widget_attrs = context["widget"]["attrs"]
         widget_attrs.setdefault("id", f"izaya_{name}")
         widget_attrs.setdefault("placeholder", lookup.placeholder)
+        widget_attrs.setdefault("maxlength", lookup.max_query_length)
         widget_attrs["class"] = " ".join(
             filter(None, ["izaya-input", classes.get("input"), widget_attrs.get("class")])
         )
         context["widget"].update(
             classes=classes,
             disabled=widget_attrs.get("disabled", False),
-            items=[lookup.to_item(result) for result in lookup.get_selected(_keys(value))],
+            items=self._selected_items(lookup, value),
             listbox_id=f"{widget_attrs['id']}_listbox",
             multiple=self.multiple,
             search_url=reverse("izaya:search", args=[self.lookup.__name__]),
         )
         return context
 
+    def _selected_items(self, lookup, value):
+        items = [lookup.to_item(result) for result in lookup.get_selected(_keys(value))]
+        field = getattr(getattr(self, "choices", None), "field", None)
+        if field is None:
+            return items
+
+        key_name = field.to_field_name or field.queryset.model._meta.pk.name
+        if isinstance(lookup, ModelLookup) and lookup.key_name != key_name:
+            raise ImproperlyConfigured(
+                f"{type(lookup).__name__}.key_field must be {key_name!r} to match the form field."
+            )
+        # A bound form renders whatever was submitted, so only the form field's queryset,
+        # which can be limited per user, decides which labels may be shown.
+        allowed = field.queryset.filter(**{f"{key_name}__in": [item.key for item in items]})
+        allowed = {str(key) for key in allowed.values_list(key_name, flat=True)}
+        return [item for item in items if item.key in allowed]
+
 
 def _keys(value):
     if value is None:
         return []
     values = value if isinstance(value, list | tuple) else [value]
-    return [key for key in values if key not in (None, "")]
+    return [str(key) for key in values if key not in (None, "")]

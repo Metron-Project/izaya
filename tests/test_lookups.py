@@ -4,8 +4,8 @@ from django.core.exceptions import ImproperlyConfigured
 from izaya import Item, ModelLookup, register
 from izaya.lookups import registry
 
-from .lookups import CharacterLookup, ColorLookup, VisibleToStaffLookup
-from .models import Character
+from .lookups import CharacterLookup, ColorLookup, ImprintLookup, VisibleToStaffLookup
+from .models import Character, Imprint
 
 
 def test_lookups_module_is_autodiscovered():
@@ -53,3 +53,22 @@ def test_get_selected_keeps_key_order_and_skips_bad_keys():
 def test_get_selected_ignores_per_request_restrictions():
     character = Character.objects.create(name="Hidden")
     assert VisibleToStaffLookup().get_selected([character.pk]) == [character]
+
+
+@pytest.mark.django_db
+def test_get_selected_keeps_a_zero_primary_key():
+    character = Character.objects.create(pk=0, name="Zero")
+    assert CharacterLookup().get_selected(["0"]) == [character]
+
+
+@pytest.mark.django_db
+def test_get_selected_skips_a_key_too_large_for_the_field():
+    assert CharacterLookup().get_selected(["9" * 30]) == []
+
+
+@pytest.mark.django_db
+def test_key_field_is_used_for_items_and_selection():
+    imprint = Imprint.objects.create(name="Vertigo", slug="vertigo")
+    lookup = ImprintLookup()
+    assert lookup.to_item(imprint) == Item("vertigo", "Vertigo")
+    assert lookup.get_selected(["vertigo", "missing"]) == [imprint]

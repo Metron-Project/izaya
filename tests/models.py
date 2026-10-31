@@ -19,3 +19,15 @@ class Team(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class Imprint(models.Model):
+    name = models.CharField(max_length=100)
+    slug = models.SlugField(unique=True)
+
+    def __str__(self):
+        return self.name
+
+
+class Comic(models.Model):
+    imprint = models.ForeignKey(Imprint, to_field="slug", on_delete=models.CASCADE)

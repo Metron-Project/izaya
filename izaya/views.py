@@ -1,11 +1,13 @@
 from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpResponse
 from django.shortcuts import render
+from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET
 
 from .lookups import registry
 
 
+@never_cache
 @require_GET
 def search(request, name):
     if name not in registry:
@@ -15,7 +17,7 @@ def search(request, name):
         raise PermissionDenied
 
     # PostgreSQL rejects NUL characters in query parameters.
-    query = request.GET.get("q", "").replace("\x00", "").strip()
+    query = request.GET.get("q", "").replace("\x00", "").strip()[: lookup.max_query_length]
     if not query:
         return HttpResponse()
 

@@ -35,6 +35,7 @@ class Lookup:
 
     min_length = 3
     max_results = 100
+    max_query_length = 100
     placeholder = ""
     no_results_text = _("No results found.")
     more_results_text = _("Showing the first %(count)s results. Narrow your search to see more.")
@@ -65,11 +66,17 @@ class ModelLookup(Lookup):
     """Lookup over a Django model.
 
     ``search_fields`` holds complete field lookups, such as ``name__icontains``, and a
-    record matches if any of them do.
+    record matches if any of them do. ``key_field`` names the unique field whose value is
+    submitted, and must match the form field's ``to_field_name``.
     """
 
     model = None
     search_fields = ()
+    key_field = "pk"
+
+    @property
+    def key_name(self):
+        return self.model._meta.pk.name if self.key_field == "pk" else self.key_field
 
     def get_base_queryset(self):
         """Return the records used for labels, such as with ``select_related`` applied."""
@@ -89,16 +96,19 @@ class ModelLookup(Lookup):
         return self.get_queryset(request).filter(reduce(or_, conditions))
 
     def get_selected(self, keys):
-        keys = list(filter(None, map(self._clean_key, keys)))
-        records = self.get_base_queryset().in_bulk(keys)
+        keys = [key for key in map(self._clean_key, keys) if key is not None]
+        records = self.get_base_queryset().in_bulk(keys, field_name=self.key_field)
         return [records[key] for key in keys if key in records]
 
     def to_item(self, result):
-        return Item(str(result.pk), self.label(result))
+        return Item(str(getattr(result, self.key_field)), self.label(result))
 
     def _clean_key(self, key):
         # A bound form re-renders whatever was submitted, including invalid keys.
+        field = self.model._meta.get_field(self.key_name)
         try:
-            return self.model._meta.pk.to_python(key)
+            value = field.to_python(key)
+            field.run_validators(value)
         except ValidationError:
             return None
+        return value

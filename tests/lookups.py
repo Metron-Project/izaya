@@ -1,6 +1,6 @@
 from izaya import Lookup, ModelLookup, register
 
-from .models import Character
+from .models import Character, Imprint
 
 
 @register
@@ -28,6 +28,13 @@ class VisibleToStaffLookup(ModelLookup):
 
     def get_queryset(self, request):
         return super().get_queryset(request).none()
+
+
+@register
+class ImprintLookup(ModelLookup):
+    model = Imprint
+    search_fields = ["name__icontains"]
+    key_field = "slug"
 
 
 @register

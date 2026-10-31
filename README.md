@@ -9,7 +9,7 @@ Add `izaya` to `INSTALLED_APPS`, include its URLs, and load htmx and the form's 
 
 ```python
 # urls.py
-path("izaya/", include("izaya.urls")),
+(path("izaya/", include("izaya.urls")),)
 ```
 
 ```html
@@ -49,24 +49,39 @@ class IssueForm(forms.ModelForm):
 
 | Attribute or method | Purpose |
 | --- | --- |
-| `min_length`, `max_results`, `placeholder` | Search behaviour, defaulting to `3`, `100` and `""` |
+| `min_length`, `max_results`, `max_query_length`, `placeholder` | Search behaviour, defaulting to `3`, `100`, `100` and `""` |
 | `no_results_text`, `more_results_text`, `min_length_text` | Messages shown in the results |
 | `has_access(request)` | Return `False` to answer searches with a 403 |
 | `get_queryset(request)` | The records this request may search |
 | `get_base_queryset()` | The records used for labels, for example with `select_related` |
 | `label(record)` | The text shown for a record |
 | `search(query, request)` | Replace the search entirely; must return something sliceable |
-| `get_selected(keys)` | Load the records for a form's stored value |
+| `get_selected(keys)` | Load the records for a form's value; `keys` are strings |
+| `key_field` | The unique field to submit, defaulting to `"pk"` |
 
-`get_selected` runs while the form renders, so it has no request and ignores `get_queryset`. A
-per-user `get_queryset` limits what can be searched, but only the form field can reject a submitted
-value, so give the field a matching `queryset`.
+`key_field` must match the form field's `to_field_name`, which is set automatically for a
+`ForeignKey` with `to_field`. izaya raises `ImproperlyConfigured` if they differ.
+
+For data that isn't a model, subclass `Lookup` and implement `search` and `get_selected`, returning
+`(key, label)` pairs.
+
+### Private data
 
 Search endpoints are public unless `has_access` says otherwise, so restrict any lookup over
 private data.
 
-For data that isn't a model, subclass `Lookup` and implement `search` and `get_selected`, returning
-`(key, label)` pairs.
+A per-user `get_queryset` only limits what can be searched. Limit the form field's `queryset` to the
+same records, usually in the form's `__init__`, as well:
+
+```python
+class ListForm(forms.ModelForm):
+    def __init__(self, *args, user, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["previous"].queryset = ReadingList.objects.manageable_by(user)
+```
+
+The field rejects submitted values outside that queryset, and the widget won't render their labels.
+A stored value outside it isn't shown either, so saving the form without that value clears it.
 
 ## Styling
 

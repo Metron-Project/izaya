@@ -5,8 +5,8 @@ from django.http import QueryDict
 
 from izaya import LookupWidget, ModelLookup
 
-from .lookups import CharacterLookup
-from .models import Character, Team
+from .lookups import CharacterLookup, ColorLookup, ImprintLookup
+from .models import Character, Comic, Imprint, Team
 
 
 class TeamForm(forms.ModelForm):
@@ -17,6 +17,22 @@ class TeamForm(forms.ModelForm):
             "leader": LookupWidget(CharacterLookup),
             "members": LookupWidget(CharacterLookup, multiple=True),
         }
+
+
+class ScopedForm(forms.Form):
+    """Limits a field per form, as a per-user form would."""
+
+    leader = forms.ModelChoiceField(
+        Character.objects.all(), widget=LookupWidget(CharacterLookup), required=False
+    )
+    members = forms.ModelMultipleChoiceField(
+        Character.objects.all(), widget=LookupWidget(CharacterLookup, multiple=True), required=False
+    )
+
+    def __init__(self, *args, visible=(), **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["leader"].queryset = Character.objects.filter(name__in=visible)
+        self.fields["members"].queryset = Character.objects.filter(name__in=visible)
 
 
 def render(widget, value=None, name="field", attrs=None):
@@ -144,3 +160,78 @@ def test_model_form_rejects_a_tampered_key():
     assert not form.is_valid()
     assert "leader" in form.errors
     form.as_p()
+
+
+@pytest.mark.django_db
+def test_rejected_key_does_not_render_a_hidden_label():
+    hidden = Character.objects.create(name="Hidden")
+    form = ScopedForm(QueryDict(f"leader={hidden.pk}&members={hidden.pk}"), visible=["Visible"])
+    assert not form.is_valid()
+    assert "Hidden" not in form.as_div()
+
+
+@pytest.mark.django_db
+def test_stored_value_outside_the_field_queryset_does_not_render():
+    hidden = Character.objects.create(name="Hidden")
+    form = ScopedForm(initial={"leader": hidden.pk}, visible=["Visible"])
+    assert "Hidden" not in form.as_div()
+
+
+@pytest.mark.django_db
+def test_value_inside_the_field_queryset_renders():
+    visible = Character.objects.create(name="Visible")
+    assert (
+        ">Visible</span>"
+        in ScopedForm(initial={"leader": visible.pk}, visible=["Visible"]).as_div()
+    )
+
+
+@pytest.mark.django_db
+def test_oversized_key_does_not_crash_the_re_render():
+    form = TeamForm(QueryDict(f"name=X&leader={'9' * 30}"))
+    assert not form.is_valid()
+    assert "leader" in form.errors
+    form.as_div()
+    render(LookupWidget(CharacterLookup, multiple=True), ["9" * 30])
+
+
+@pytest.mark.django_db
+def test_zero_primary_key_renders_a_chip():
+    Character.objects.create(pk=0, name="Zero")
+    assert ">Zero</span>" in render(LookupWidget(CharacterLookup), 0)
+
+
+def test_plain_lookup_receives_string_keys():
+    assert ">Red</span>" in render(LookupWidget(ColorLookup), 1)
+
+
+@pytest.mark.django_db
+def test_to_field_round_trip():
+    class ComicForm(forms.ModelForm):
+        class Meta:
+            model = Comic
+            fields = ["imprint"]
+            widgets = {"imprint": LookupWidget(ImprintLookup)}
+
+    imprint = Imprint.objects.create(name="Vertigo", slug="vertigo")
+    form = ComicForm(QueryDict("imprint=vertigo"))
+    assert form.is_valid(), form.errors
+    comic = form.save()
+    assert comic.imprint == imprint
+    assert ">Vertigo</span>" in ComicForm(instance=comic).as_div()
+
+
+@pytest.mark.django_db
+def test_lookup_key_must_match_the_form_field():
+    class ComicForm(forms.ModelForm):
+        class Meta:
+            model = Comic
+            fields = ["imprint"]
+            widgets = {"imprint": LookupWidget(CharacterLookup)}
+
+    with pytest.raises(ImproperlyConfigured, match="key_field"):
+        ComicForm().as_div()
+
+
+def test_input_has_the_query_length_limit():
+    assert 'maxlength="100"' in render(LookupWidget(CharacterLookup))
