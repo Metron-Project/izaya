@@ -1,0 +1,5 @@
+{% load i18n %}<span class="izaya-chip {{ widget.classes.chip }}" data-izaya-chip>
+  <input type="hidden" name="{{ widget.name }}" value="{{ item.key }}"{% if widget.disabled %} disabled{% endif %}>
+  <span class="izaya-chip-label {{ widget.classes.chip_label }}" data-izaya-chip-label>{{ item.label }}</span>
+  {% if not widget.disabled %}<button type="button" class="izaya-remove {{ widget.classes.remove }}" aria-label="{% translate 'Remove' %}" data-izaya-remove>&times;</button>{% endif %}
+</span>
