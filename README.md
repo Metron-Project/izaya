@@ -5,6 +5,12 @@ it ships no required styles.
 
 ## Setup
 
+izaya needs Python 3.14+, Django 6.0+ and htmx 2. Install it with:
+
+```
+pip install izaya
+```
+
 Add `izaya` to `INSTALLED_APPS`, include its URLs, and load htmx and the form's media on the page:
 
 ```python
@@ -123,3 +129,7 @@ uv run ruff check .
 ```
 
 The browser tests in `tests/test_browser.py` need Firefox and are skipped without it.
+
+## License
+
+izaya is released under the GNU General Public License v3.0 or later. See [LICENSE](LICENSE).
