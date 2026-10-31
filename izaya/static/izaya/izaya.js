@@ -2,6 +2,10 @@
 (() => {
   "use strict";
 
+  // An htmx partial can run this script again, which would double every listener.
+  if (window.izayaLoaded) return;
+  window.izayaLoaded = true;
+
   const part = (root, name) => root.querySelector(`[data-izaya-${name}]`);
   const options = (root) => [...part(root, "listbox").querySelectorAll("[data-izaya-key]")];
   const chips = (root) => [...part(root, "selection").querySelectorAll("[data-izaya-chip]")];
@@ -111,7 +115,8 @@
     const all = options(root);
     const index = all.findIndex((option) => option.id === event.target.getAttribute("aria-activedescendant"));
 
-    if (event.key === "Backspace" && !event.target.value && chips(root).length) {
+    const canRemove = !event.repeat && !event.target.readOnly && !event.target.value;
+    if (event.key === "Backspace" && canRemove && chips(root).length) {
       removeChip(root, chips(root).at(-1));
     } else if (event.key === "Escape" && isOpen(root)) {
       event.preventDefault();
