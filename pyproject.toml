@@ -18,8 +18,16 @@ build-backend = "uv_build"
 [tool.uv.build-backend]
 module-root = ""
 
+[tool.coverage.run]
+source = ["izaya"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "tests.settings"
+addopts = "--cov"
 django_find_project = false
 pythonpath = ["."]
 testpaths = ["tests"]
@@ -33,6 +41,7 @@ target-version = "py314"
 
 [dependency-groups]
 dev = [
+    "pytest-cov>=7.1.0",
     "pytest-django>=4.14.0",
     "ruff>=0.17.3",
 ]
