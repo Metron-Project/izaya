@@ -63,12 +63,35 @@ class IssueForm(forms.ModelForm):
 | `get_queryset(request)` | The records this request may search |
 | `get_base_queryset()` | The records used for labels, for example with `select_related` |
 | `label(record)` | The text shown for a record |
+| `rank_fields` | Text fields that put the closest matches first, defaulting to `()` |
+| `rank(queryset, query)` | Apply `rank_fields` to a queryset, for use in a custom `search` |
 | `search(query, request)` | Replace the search entirely; must return something sliceable |
 | `get_selected(keys)` | Load the records for a form's value; `keys` are strings |
 | `key_field` | The unique field to submit, defaulting to `"pk"` |
 
 `key_field` must match the form field's `to_field_name`, which is set automatically for a
 `ForeignKey` with `to_field`. izaya raises `ImproperlyConfigured` if they differ.
+
+Results are cut off at `max_results`, so when a common word matches more records than that, the
+best match can be lost. `rank_fields` puts the closest matches first:
+
+```python
+class CharacterLookup(ModelLookup):
+    model = Character
+    search_fields = ["name__unaccent__icontains", "alias__icontains"]
+    rank_fields = ["name__unaccent"]
+```
+
+Unlike `search_fields`, these are field names without a lookup, and only change the order. A record
+ranks by its best match in any of them: the whole value, then the start of the value, then the start
+of a word, then everything else. Ties keep the order of `get_queryset`, or the model's
+`Meta.ordering`, then fall back to the primary key. `rank_fields` can't cross a to-many relation,
+which the system check `izaya.E001` reports. Every match has to be ranked before the results are cut
+off, so measure this on large tables. Ranking is tested on SQLite and PostgreSQL, but not MySQL or
+MariaDB.
+
+A `search` override keeps its own order unless it calls `rank`, which raises `ImproperlyConfigured`
+for a sliced or combined queryset, or one using `distinct()` with field names.
 
 For data that isn't a model, subclass `Lookup` and implement `search` and `get_selected`, returning
 `(key, label)` pairs.

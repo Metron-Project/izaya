@@ -1,15 +1,19 @@
 """Lookups define what a widget searches and how results are labelled."""
 
+import re
 from dataclasses import dataclass
 from functools import reduce
 from operator import or_
 
 from django.contrib.admin.utils import lookup_spawns_duplicates
 from django.core.exceptions import ImproperlyConfigured, ValidationError
-from django.db.models import Q
+from django.db.models import Case, Q, Value, When
 from django.utils.translation import gettext_lazy as _
 
 registry = {}
+
+# Word boundary tokens aren't portable, and only work beside a word character anyway.
+WORD_START = r"(^|\W)"
 
 
 @dataclass(frozen=True)
@@ -70,10 +74,16 @@ class ModelLookup(Lookup):
     record matches if any of them do. Each one receives the search text as is, so other
     fields need a ``search`` override. ``key_field`` names the unique field whose value is
     submitted, and must match the form field's ``to_field_name``.
+
+    ``rank_fields`` optionally names text fields, such as ``name__unaccent``, that put the
+    closest matches first. A record ranks by its best match in any of them: the whole value,
+    the start of the value, the start of a word, then everything else. Ties keep the
+    queryset's existing order, then fall back to the primary key.
     """
 
     model = None
     search_fields = ()
+    rank_fields = ()
     key_field = "pk"
 
     @property
@@ -96,10 +106,48 @@ class ModelLookup(Lookup):
             raise ImproperlyConfigured(f"{type(self).__name__} must define search_fields.")
         conditions = [Q(**{field: query}) for field in self.search_fields]
         queryset = self.get_queryset(request).filter(reduce(or_, conditions))
-        opts = self.model._meta
-        if any(lookup_spawns_duplicates(opts, field) for field in self.search_fields):
+        if self._spawns_duplicates(self.search_fields):
             queryset = queryset.distinct()
-        return queryset
+        return self.rank(queryset, query)
+
+    def rank(self, queryset, query):
+        """Return ``queryset`` with the closest matches to ``query`` first."""
+        if not self.rank_fields:
+            return queryset
+        sql = queryset.query
+        if sql.is_sliced or sql.combinator or sql.distinct_fields:
+            raise ImproperlyConfigured(
+                f"{type(self).__name__}.rank() needs a queryset that isn't sliced, combined or "
+                "using DISTINCT ON."
+            )
+        tiers = [
+            ("iexact", query),
+            ("istartswith", query),
+            ("iregex", WORD_START + re.escape(query)),
+        ]
+        cases = [
+            When(
+                reduce(or_, [Q(**{f"{field}__{lookup}": value}) for field in self.rank_fields]),
+                then=Value(tier),
+            )
+            for tier, (lookup, value) in enumerate(tiers)
+        ]
+        rank = Case(*cases, default=Value(len(tiers)))
+        # SELECT DISTINCT needs the rank in the select list, and nothing else does.
+        queryset = (
+            queryset.annotate(izaya_rank=rank) if sql.distinct else queryset.alias(izaya_rank=rank)
+        )
+        # A reversed queryset flips every ordering term, which must leave the rank ascending.
+        rank_order = "izaya_rank" if sql.standard_ordering else "-izaya_rank"
+        if sql.extra_order_by:
+            return queryset.extra(order_by=[rank_order, *sql.extra_order_by, "pk"])
+        ordering = sql.order_by or (self.model._meta.ordering if sql.default_ordering else ())
+        # The primary key keeps the max_results cut-off stable when ties remain.
+        return queryset.order_by(rank_order, *ordering, "pk")
+
+    @classmethod
+    def _spawns_duplicates(cls, fields):
+        return any(lookup_spawns_duplicates(cls.model._meta, field) for field in fields)
 
     def get_selected(self, keys):
         keys = [key for key in map(self._clean_key, keys) if key is not None]

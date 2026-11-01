@@ -31,6 +31,15 @@ def test_no_results(client):
     assert "No results found." in client.get(url("CharacterLookup"), {"q": "zzz"}).text
 
 
+def test_rank_applies_before_max_results_cuts_off_the_results(client):
+    Character.objects.bulk_create(
+        Character(name=name) for name in ("Acid Storm", "Bad Storm", "Storm")
+    )
+    response = client.get(url("RankedCharacterLookup"), {"q": "storm"})
+    assert 'data-izaya-label="Storm"' in response.text
+    assert 'data-izaya-label="Bad Storm"' not in response.text
+
+
 def test_results_past_max_results_are_cut_off_with_a_message(client):
     Character.objects.bulk_create(Character(name=f"Bat {i}") for i in range(3))
     response = client.get(url("CharacterLookup"), {"q": "bat"})
