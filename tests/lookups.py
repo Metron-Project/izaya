@@ -28,6 +28,15 @@ class PrivateLookup(ModelLookup):
 
 
 @register
+class PublicLookup(ModelLookup):
+    model = Character
+    search_fields = ["name__icontains"]
+
+    def has_access(self, request):
+        return True
+
+
+@register
 class VisibleToStaffLookup(ModelLookup):
     """Hides everything from search, as a per-user queryset would."""
 

@@ -6,7 +6,7 @@ from django.apps import AppConfig
 from django.core import checks
 from django.utils.module_loading import autodiscover_modules
 
-from .checks import check_rank_fields
+from .checks import check_login_required, check_rank_fields
 
 
 class IzayaConfig(AppConfig):
@@ -18,3 +18,4 @@ class IzayaConfig(AppConfig):
     def ready(self) -> None:
         autodiscover_modules("lookups")
         checks.register(check_rank_fields)
+        checks.register(check_login_required)

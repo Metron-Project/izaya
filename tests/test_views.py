@@ -1,4 +1,5 @@
 import pytest
+from django.contrib.auth import get_user_model
 from django.urls import reverse
 
 from .models import Character, Team
@@ -78,6 +79,37 @@ def test_unknown_lookup_is_not_found(client):
 
 def test_access_is_enforced(client):
     assert client.get(url("PrivateLookup"), {"q": "bat"}).status_code == 403
+
+
+def test_denied_search_shows_the_message(client):
+    response = client.get(url("PrivateLookup"), {"q": "bat"})
+    assert "You don&#x27;t have access to this search." in response.text
+    assert "data-izaya-key" not in response.text
+
+
+def test_anonymous_can_search_by_default(client):
+    assert client.get(url("CharacterLookup"), {"q": "bat"}).status_code == 200
+
+
+def test_login_required_denies_anonymous_searches(client, settings):
+    settings.IZAYA_LOGIN_REQUIRED = True
+    Character.objects.create(name="Batman")
+    response = client.get(url("CharacterLookup"), {"q": "bat"})
+    assert response.status_code == 403
+    assert "Batman" not in response.text
+
+
+def test_login_required_allows_logged_in_searches(client, settings):
+    settings.IZAYA_LOGIN_REQUIRED = True
+    Character.objects.create(name="Batman")
+    client.force_login(get_user_model().objects.create_user("reader"))
+    assert "Batman" in client.get(url("CharacterLookup"), {"q": "bat"}).text
+
+
+def test_login_required_can_be_opted_out_of(client, settings):
+    settings.IZAYA_LOGIN_REQUIRED = True
+    Character.objects.create(name="Batman")
+    assert "Batman" in client.get(url("PublicLookup"), {"q": "bat"}).text
 
 
 def test_only_get_is_allowed(client):

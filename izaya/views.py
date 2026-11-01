@@ -2,7 +2,6 @@
 
 from typing import Any
 
-from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.views.decorators.cache import never_cache
@@ -19,7 +18,9 @@ def search(request: HttpRequest, name: str) -> HttpResponse:
         raise Http404
     lookup = registry[name]()
     if not lookup.has_access(request):
-        raise PermissionDenied
+        # Rendered rather than raised, so izaya.js has a message to show for the 403.
+        context = {"items": [], "message": lookup.access_denied_text}
+        return render(request, "izaya/options.html", context, status=403)
 
     # PostgreSQL rejects NUL characters in query parameters.
     query = request.GET.get("q", "").replace("\x00", "").strip()[: lookup.max_query_length]

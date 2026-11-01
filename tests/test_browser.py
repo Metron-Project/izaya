@@ -296,6 +296,19 @@ def test_closing_clears_the_options(page):
     assert widget.options == []
 
 
+def test_denied_search_shows_the_message(page):
+    page.execute_script(
+        "window.errors = 0;"
+        "document.addEventListener('htmx:responseError', () => { window.errors += 1; });"
+    )
+    widget = Widget(page, "private")
+    widget.input.send_keys("bat")
+    widget.wait.until(lambda _: widget.listbox.is_displayed())
+    assert "You don't have access to this search." in widget.listbox.text
+    assert widget.options == []
+    assert page.execute_script("return window.errors") == 0
+
+
 def test_loading_the_script_twice_acts_once(page):
     page.execute_script(
         "const script = document.createElement('script');"

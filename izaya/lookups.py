@@ -7,6 +7,7 @@ from functools import reduce
 from operator import or_
 from typing import Any, cast, override
 
+from django.conf import settings
 from django.contrib.admin.utils import lookup_spawns_duplicates
 from django.core.exceptions import ImproperlyConfigured, ValidationError
 from django.db.models import Case, Field, Model, Q, QuerySet, Value, When
@@ -50,9 +51,12 @@ class Lookup:
     no_results_text = _("No results found.")
     more_results_text = _("Showing the first %(count)s results. Narrow your search to see more.")
     min_length_text = _("Type at least %(count)s characters.")
+    access_denied_text = _("You don't have access to this search. You may need to log in.")
 
     def has_access(self, request: HttpRequest) -> bool:
         """Return whether ``request`` may search this lookup."""
+        if getattr(settings, "IZAYA_LOGIN_REQUIRED", False):
+            return request.user.is_authenticated
         return True
 
     def search(self, query: str, request: HttpRequest) -> Sequence[Any] | QuerySet:

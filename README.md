@@ -58,8 +58,8 @@ class IssueForm(forms.ModelForm):
 | Attribute or method | Purpose |
 | --- | --- |
 | `min_length`, `max_results`, `max_query_length`, `placeholder` | Search behaviour, defaulting to `3`, `100`, `100` and `""` |
-| `no_results_text`, `more_results_text`, `min_length_text` | Messages shown in the results |
-| `has_access(request)` | Return `False` to answer searches with a 403 |
+| `no_results_text`, `more_results_text`, `min_length_text`, `access_denied_text` | Messages shown in the results |
+| `has_access(request)` | Return `False` to answer searches with a 403, which shows `access_denied_text` |
 | `get_queryset(request)` | The records this request may search |
 | `get_base_queryset()` | The records used for labels, for example with `select_related` |
 | `label(record)` | The text shown for a record |
@@ -98,11 +98,37 @@ For data that isn't a model, subclass `Lookup` and implement `search` and `get_s
 
 ### Private data
 
-Search endpoints are public unless `has_access` says otherwise, so restrict any lookup over
-private data.
+Search endpoints are public by default, so restrict any lookup over private data. If every form
+with a `LookupWidget` is behind a login, require one for all lookups:
 
-A per-user `get_queryset` only limits what can be searched. Limit the form field's `queryset` to the
-same records, usually in the form's `__init__`, as well:
+```python
+IZAYA_LOGIN_REQUIRED = True
+```
+
+Anonymous searches then get a 403, so a session that expires while a form is open shows
+`access_denied_text` in the results. This reads `request.user`, which needs
+`AuthenticationMiddleware`. The system check `izaya.W001` reports if it's missing from `MIDDLEWARE`.
+To keep one lookup public, for example on a public page, override `has_access`:
+
+```python
+class GenreLookup(ModelLookup):
+    model = Genre
+    search_fields = ["name__icontains"]
+
+    def has_access(self, request):
+        return True
+```
+
+A `has_access` override replaces the setting, so call `super().has_access(request)` to add a rule
+on top of it.
+
+Django's `LoginRequiredMiddleware` takes over for anonymous users: it redirects their searches to
+the login page before izaya sees them. The setting, `has_access` and `access_denied_text` then have
+no effect on those searches, so a lookup can't opt out to stay public.
+
+The setting only controls who can search, not what they find. A per-user `get_queryset` only limits
+what can be searched. Limit the form field's `queryset` to the same records, usually in the form's
+`__init__`, as well:
 
 ```python
 class ListForm(forms.ModelForm):

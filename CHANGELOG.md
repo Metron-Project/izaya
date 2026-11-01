@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Add an `IZAYA_LOGIN_REQUIRED` setting that denies anonymous searches on every lookup, with a
+  `has_access` override to opt one out, and the system check `izaya.W001` for a missing
+  `AuthenticationMiddleware`
+- Show a message when a search is denied, from the new `access_denied_text` lookup attribute. The
+  search endpoint now renders its 403 instead of raising `PermissionDenied`, so a project's
+  `handler403` no longer runs for it
+
 ## v0.2.0 - 2026-11-01
 
 - Fix a single-value `LookupWidget` showing its placeholder beside the selected value: the
