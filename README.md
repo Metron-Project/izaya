@@ -112,9 +112,9 @@ Without any CSS, results appear inline below the input. To float them over the p
 optional `izaya/layout.css` or position `.izaya-listbox` yourself.
 
 `izaya/layout.css` gives the floating results a default background from the `Canvas` and
-`CanvasText` system colours, so they stay readable over the page. Those colours follow the CSS
+`CanvasText` system colors, so they stay readable over the page. Those colors follow the CSS
 `color-scheme` property rather than your site's theme. If your dark theme doesn't set
-`color-scheme`, give the results their colours with a class on `IZAYA_CLASSES["listbox"]`, such as
+`color-scheme`, give the results their colors with a class on `IZAYA_CLASSES["listbox"]`, such as
 Bulma's `box`, which takes precedence whatever order the stylesheets load in. Or set the custom
 properties:
 
