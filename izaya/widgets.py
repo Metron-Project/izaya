@@ -1,9 +1,14 @@
+"""The form widget."""
+
+from collections.abc import Mapping
+from typing import Any, override
+
 from django import forms
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.urls import reverse
 
-from .lookups import ModelLookup, registry
+from .lookups import Item, Lookup, ModelLookup, registry
 
 
 class LookupWidget(forms.Widget):
@@ -14,7 +19,14 @@ class LookupWidget(forms.Widget):
     class Media:
         js = ("izaya/izaya.js",)
 
-    def __init__(self, lookup, *, multiple=False, classes=None, attrs=None):
+    def __init__(
+        self,
+        lookup: type[Lookup],
+        *,
+        multiple: bool = False,
+        classes: dict[str, str] | None = None,
+        attrs: dict[str, Any] | None = None,
+    ) -> None:
         if registry.get(lookup.__name__) is not lookup:
             raise ImproperlyConfigured(f"{lookup.__name__} must be decorated with @register.")
         super().__init__(attrs)
@@ -22,20 +34,29 @@ class LookupWidget(forms.Widget):
         self.multiple = multiple
         self.classes = classes or {}
 
-    def use_required_attribute(self, initial):
+    @override
+    def use_required_attribute(self, initial: Any) -> bool:
         # The search box is never the submitted value, so only the server can validate.
         return False
 
-    def value_from_datadict(self, data, files, name):
-        if self.multiple and hasattr(data, "getlist"):
-            return data.getlist(name)
+    @override
+    def value_from_datadict(
+        self, data: Mapping[str, Any], files: Mapping[str, Any], name: str
+    ) -> list[str] | str | None:
+        getlist = getattr(data, "getlist", None)
+        if self.multiple and getlist:
+            return getlist(name)
         return data.get(name)
 
-    def value_omitted_from_data(self, data, files, name):
+    @override
+    def value_omitted_from_data(
+        self, data: Mapping[str, Any], files: Mapping[str, Any], name: str
+    ) -> bool:
         # Having nothing selected submits nothing, the same as <select multiple>.
         return False
 
-    def get_context(self, name, value, attrs):
+    @override
+    def get_context(self, name: str, value: Any, attrs: dict[str, Any] | None) -> dict[str, Any]:
         context = super().get_context(name, value, attrs)
         lookup = self.lookup()
         classes = {**getattr(settings, "IZAYA_CLASSES", {}), **self.classes}
@@ -62,7 +83,7 @@ class LookupWidget(forms.Widget):
         )
         return context
 
-    def _selected_items(self, lookup, value):
+    def _selected_items(self, lookup: Lookup, value: Any) -> list[Item]:
         items = [lookup.to_item(result) for result in lookup.get_selected(_keys(value))]
         field = getattr(getattr(self, "choices", None), "field", None)
         if field is None:
@@ -90,7 +111,7 @@ class LookupWidget(forms.Widget):
         return [item for item in items if item.key in allowed]
 
 
-def _keys(value):
+def _keys(value: Any) -> list[str]:
     if value is None:
         return []
     values = value if isinstance(value, list | tuple) else [value]

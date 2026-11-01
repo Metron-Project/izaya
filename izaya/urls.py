@@ -1,3 +1,5 @@
+"""URL patterns for the search endpoint."""
+
 from django.urls import path
 
 from . import views

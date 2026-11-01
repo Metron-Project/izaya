@@ -1,5 +1,9 @@
+"""The search endpoint."""
+
+from typing import Any
+
 from django.core.exceptions import PermissionDenied
-from django.http import Http404, HttpResponse
+from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_GET
@@ -9,7 +13,8 @@ from .lookups import registry
 
 @never_cache
 @require_GET
-def search(request, name):
+def search(request: HttpRequest, name: str) -> HttpResponse:
+    """Render the options that the lookup called ``name`` finds for the ``q`` parameter."""
     if name not in registry:
         raise Http404
     lookup = registry[name]()
@@ -21,7 +26,7 @@ def search(request, name):
     if not query:
         return HttpResponse()
 
-    context = {"items": []}
+    context: dict[str, Any] = {"items": []}
     if len(query) < lookup.min_length:
         context["message"] = lookup.min_length_text % {"count": lookup.min_length}
     else:

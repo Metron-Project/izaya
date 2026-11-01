@@ -216,6 +216,15 @@ def test_rank_ties_respect_cleared_ordering():
 
 
 @pytest.mark.django_db
+def test_rank_ties_allow_model_ordering_of_none(monkeypatch):
+    monkeypatch.setattr(Character._meta, "ordering", None)
+    Character.objects.create(name="Bat Z")
+    Character.objects.create(name="Bat A")
+
+    assert names(RankedCharacterLookup().search("bat", None)) == ["Bat Z", "Bat A"]
+
+
+@pytest.mark.django_db
 def test_rank_ties_keep_extra_ordering(storms):
     class Extra(RankedCharacterLookup):
         def get_queryset(self, request):
