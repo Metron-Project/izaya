@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.2.0 - 2026-11-01
 
 - Fix a single-value `LookupWidget` showing its placeholder beside the selected value: the
   placeholder is now removed while a value is selected and restored when it's removed
