@@ -323,5 +323,25 @@ def test_rank_fields_can_follow_a_to_one_relation(monkeypatch):
     assert rank_field_errors() == []
 
 
+def login_required_warnings():
+    return [error for error in run_checks() if error.id == "izaya.W001"]
+
+
+def test_login_required_warns_without_authentication_middleware(settings):
+    settings.IZAYA_LOGIN_REQUIRED = True
+    settings.MIDDLEWARE = []
+    assert len(login_required_warnings()) == 1
+
+
+def test_login_required_accepts_authentication_middleware(settings):
+    settings.IZAYA_LOGIN_REQUIRED = True
+    assert login_required_warnings() == []
+
+
+def test_missing_middleware_is_fine_without_login_required(settings):
+    settings.MIDDLEWARE = []
+    assert login_required_warnings() == []
+
+
 def test_search_is_unranked_without_rank_fields():
     assert "CASE" not in str(CharacterLookup().search("bat", None).query)
