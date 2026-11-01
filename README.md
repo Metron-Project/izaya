@@ -140,6 +140,7 @@ bubbling `izaya:select` and `izaya:remove` events, with `key` and `label` in `ev
 
 ```
 uv sync
+uv run pre-commit install
 uv run pytest
 uv run ruff check .
 ```
