@@ -46,10 +46,16 @@ class LookupWidget(forms.Widget):
         widget_attrs["class"] = " ".join(
             filter(None, ["izaya-input", classes.get("input"), widget_attrs.get("class")])
         )
+        items = self._selected_items(lookup, value)
+        if not self.multiple:
+            # A chip is the whole value, so the prompt goes until the script restores it.
+            widget_attrs["data-izaya-placeholder"] = widget_attrs["placeholder"]
+            if items:
+                del widget_attrs["placeholder"]
         context["widget"].update(
             classes=classes,
             disabled=widget_attrs.get("disabled", False),
-            items=self._selected_items(lookup, value),
+            items=items,
             listbox_id=f"{widget_attrs['id']}_listbox",
             multiple=self.multiple,
             search_url=reverse("izaya:search", args=[self.lookup.__name__]),

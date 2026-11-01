@@ -31,6 +31,10 @@ class Widget:
         )
         return [label.text for label in labels]
 
+    @property
+    def placeholder(self):
+        return self.input.get_dom_attribute("placeholder")
+
     def search(self, text):
         self.input.send_keys(text)
         self.wait.until(lambda _: self.listbox.is_displayed() and self.options)
@@ -206,6 +210,35 @@ def test_remove_button_removes_the_chip(page):
     widget.pick("red")
     widget.root.find_element(By.CSS_SELECTOR, "[data-izaya-remove]").click()
     assert widget.chips == []
+
+
+def test_single_value_drops_the_placeholder_until_the_chip_is_removed(page):
+    widget = Widget(page, "color")
+    assert widget.placeholder == "Find"
+    widget.pick("red")
+    assert widget.placeholder is None
+    widget.input.send_keys(Keys.BACKSPACE)
+    assert widget.placeholder == "Find"
+
+
+def test_replacing_a_single_value_keeps_the_placeholder_away(page):
+    widget = Widget(page, "color")
+    widget.pick("red")
+    widget.pick("blu")
+    assert widget.placeholder is None
+
+
+def test_rendered_single_value_restores_the_placeholder(page):
+    widget = Widget(page, "preset")
+    assert widget.placeholder is None
+    widget.root.find_element(By.CSS_SELECTOR, "[data-izaya-remove]").click()
+    assert widget.placeholder == "Find"
+
+
+def test_multiple_keeps_the_placeholder(page):
+    widget = Widget(page, "colors")
+    widget.pick("red")
+    assert widget.placeholder == "Find"
 
 
 def test_label_markup_stays_text(page):
