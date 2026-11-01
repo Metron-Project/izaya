@@ -68,7 +68,17 @@ class LookupWidget(forms.Widget):
                 f"{type(lookup).__name__}.key_field must be {key_name!r} to match the form field."
             )
         # A bound form renders whatever was submitted, so only the form field's queryset,
-        # which can be limited per user, decides which labels may be shown.
+        # which can be limited per user, decides which labels may be shown. A queryset over
+        # the lookup's whole table can't drop anything, so that check is skipped.
+        query = field.queryset.query
+        if (
+            isinstance(lookup, ModelLookup)
+            and lookup.model is field.queryset.model
+            and not query.has_filters()
+            and not query.is_sliced
+            and not query.combinator
+        ):
+            return items
         allowed = field.queryset.filter(**{f"{key_name}__in": [item.key for item in items]})
         allowed = {str(key) for key in allowed.values_list(key_name, flat=True)}
         return [item for item in items if item.key in allowed]
