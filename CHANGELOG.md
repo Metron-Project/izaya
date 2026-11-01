@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Fix the results staying white in dark mode: colours from `IZAYA_CLASSES["listbox"]` now override
+  `izaya/layout.css` whatever order the stylesheets load in
+- Add `--izaya-listbox-background` and `--izaya-listbox-color` custom properties
+
 ## 0.1.0 - 2026-10-31
 
 Initial release.

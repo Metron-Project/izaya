@@ -69,8 +69,49 @@ def page(driver, live_server):
     return driver
 
 
+def load_layout_css(page, host_css=""):
+    """Load layout.css after `host_css`, the order a site normally ends up with."""
+    page.execute_script(
+        "const style = document.createElement('style');"
+        "style.textContent = arguments[0];"
+        "const link = document.createElement('link');"
+        "link.rel = 'stylesheet';"
+        "link.href = '/static/izaya/layout.css';"
+        "link.onload = () => { window.layoutLoaded = true; };"
+        "document.head.append(style, link);",
+        host_css,
+    )
+    WebDriverWait(page, 5).until(lambda _: page.execute_script("return window.layoutLoaded"))
+
+
+def listbox_colors(widget):
+    return widget.driver.execute_script(
+        "const style = getComputedStyle(arguments[0]);return [style.backgroundColor, style.color]",
+        widget.listbox,
+    )
+
+
 def test_listbox_stays_hidden_under_a_display_class(page):
     assert not Widget(page, "colors").listbox.is_displayed()
+
+
+def test_listbox_class_colors_beat_a_later_layout_css(page):
+    load_layout_css(page, ".box { background-color: rgb(1, 2, 3); color: rgb(4, 5, 6); }")
+    assert listbox_colors(Widget(page, "colors")) == ["rgb(1, 2, 3)", "rgb(4, 5, 6)"]
+
+
+def test_custom_properties_set_the_listbox_colors(page):
+    load_layout_css(
+        page,
+        ":root { --izaya-listbox-background: rgb(1, 2, 3); --izaya-listbox-color: rgb(4, 5, 6); }",
+    )
+    assert listbox_colors(Widget(page, "color")) == ["rgb(1, 2, 3)", "rgb(4, 5, 6)"]
+
+
+def test_listbox_is_opaque_by_default(page):
+    load_layout_css(page)
+    background, _ = listbox_colors(Widget(page, "color"))
+    assert background != "rgba(0, 0, 0, 0)"
 
 
 def test_keyboard_selects_an_option(page):
