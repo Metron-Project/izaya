@@ -44,3 +44,33 @@ jobs:
         run: firefox --version
       - name: Run tests
         run: uv run --with "django~=${{ matrix.django-version }}.0" pytest
+
+  postgres:
+    name: PostgreSQL
+    runs-on: ubuntu-latest
+    env:
+      PGHOST: localhost
+      PGPASSWORD: postgres
+      PGUSER: postgres
+      UV_PYTHON: "3.14"
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v6
+      - name: Install project
+        run: uv sync --locked
+      - name: Run tests
+        run: uv run --with "psycopg[binary]" pytest --ignore=tests/test_browser.py

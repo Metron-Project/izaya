@@ -85,10 +85,13 @@ class CharacterLookup(ModelLookup):
 Unlike `search_fields`, these are field names without a lookup, and only change the order. A record
 ranks by its best match in any of them: the whole value, then the start of the value, then the start
 of a word, then everything else. Ties keep the order of `get_queryset`, or the model's
-`Meta.ordering`. The start of a word needs PostgreSQL, MySQL, MariaDB or SQLite, and other databases
-skip that step. `rank_fields` can't cross a to-many relation. Every match has to be ranked before the
-results are cut off, so measure this on large tables. A `search` override keeps its own order unless
-it calls `rank`.
+`Meta.ordering`, then fall back to the primary key. `rank_fields` can't cross a to-many relation,
+which the system check `izaya.E001` reports. Every match has to be ranked before the results are cut
+off, so measure this on large tables. Ranking is tested on SQLite and PostgreSQL, but not MySQL or
+MariaDB.
+
+A `search` override keeps its own order unless it calls `rank`, which raises `ImproperlyConfigured`
+for a sliced or combined queryset, or one using `distinct()` with field names.
 
 For data that isn't a model, subclass `Lookup` and implement `search` and `get_selected`, returning
 `(key, label)` pairs.

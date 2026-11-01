@@ -7,14 +7,13 @@ from operator import or_
 
 from django.contrib.admin.utils import lookup_spawns_duplicates
 from django.core.exceptions import ImproperlyConfigured, ValidationError
-from django.db import connections
 from django.db.models import Case, Q, Value, When
 from django.utils.translation import gettext_lazy as _
 
 registry = {}
 
-# Regex word boundaries by database vendor. Others skip the word-start rank.
-WORD_BOUNDARIES = {"mysql": r"\b", "postgresql": r"\y", "sqlite": r"\b"}
+# Word boundary tokens aren't portable, and only work beside a word character anyway.
+WORD_START = r"(^|\W)"
 
 
 @dataclass(frozen=True)
@@ -79,7 +78,7 @@ class ModelLookup(Lookup):
     ``rank_fields`` optionally names text fields, such as ``name__unaccent``, that put the
     closest matches first. A record ranks by its best match in any of them: the whole value,
     the start of the value, the start of a word, then everything else. Ties keep the
-    queryset's existing order.
+    queryset's existing order, then fall back to the primary key.
     """
 
     model = None
@@ -107,8 +106,7 @@ class ModelLookup(Lookup):
             raise ImproperlyConfigured(f"{type(self).__name__} must define search_fields.")
         conditions = [Q(**{field: query}) for field in self.search_fields]
         queryset = self.get_queryset(request).filter(reduce(or_, conditions))
-        opts = self.model._meta
-        if any(lookup_spawns_duplicates(opts, field) for field in self.search_fields):
+        if self._spawns_duplicates(self.search_fields):
             queryset = queryset.distinct()
         return self.rank(queryset, query)
 
@@ -116,13 +114,17 @@ class ModelLookup(Lookup):
         """Return ``queryset`` with the closest matches to ``query`` first."""
         if not self.rank_fields:
             return queryset
-        opts = self.model._meta
-        if any(lookup_spawns_duplicates(opts, field) for field in self.rank_fields):
-            # A record would get one rank per related row, which distinct() can't collapse.
-            raise ImproperlyConfigured(f"{type(self).__name__}.rank_fields can't span to-many.")
-        tiers = [("iexact", query), ("istartswith", query)]
-        if boundary := WORD_BOUNDARIES.get(connections[queryset.db].vendor):
-            tiers.append(("iregex", boundary + re.escape(query)))
+        sql = queryset.query
+        if sql.is_sliced or sql.combinator or sql.distinct_fields:
+            raise ImproperlyConfigured(
+                f"{type(self).__name__}.rank() needs a queryset that isn't sliced, combined or "
+                "using DISTINCT ON."
+            )
+        tiers = [
+            ("iexact", query),
+            ("istartswith", query),
+            ("iregex", WORD_START + re.escape(query)),
+        ]
         cases = [
             When(
                 reduce(or_, [Q(**{f"{field}__{lookup}": value}) for field in self.rank_fields]),
@@ -130,10 +132,22 @@ class ModelLookup(Lookup):
             )
             for tier, (lookup, value) in enumerate(tiers)
         ]
-        ordering = queryset.query.order_by or opts.ordering
-        # Selected rather than only ordered by, as SELECT DISTINCT requires.
-        queryset = queryset.annotate(izaya_rank=Case(*cases, default=Value(len(tiers))))
-        return queryset.order_by("izaya_rank", *ordering)
+        rank = Case(*cases, default=Value(len(tiers)))
+        # SELECT DISTINCT needs the rank in the select list, and nothing else does.
+        queryset = (
+            queryset.annotate(izaya_rank=rank) if sql.distinct else queryset.alias(izaya_rank=rank)
+        )
+        # A reversed queryset flips every ordering term, which must leave the rank ascending.
+        rank_order = "izaya_rank" if sql.standard_ordering else "-izaya_rank"
+        if sql.extra_order_by:
+            return queryset.extra(order_by=[rank_order, *sql.extra_order_by, "pk"])
+        ordering = sql.order_by or (self.model._meta.ordering if sql.default_ordering else ())
+        # The primary key keeps the max_results cut-off stable when ties remain.
+        return queryset.order_by(rank_order, *ordering, "pk")
+
+    @classmethod
+    def _spawns_duplicates(cls, fields):
+        return any(lookup_spawns_duplicates(cls.model._meta, field) for field in fields)
 
     def get_selected(self, keys):
         keys = [key for key in map(self._clean_key, keys) if key is not None]
