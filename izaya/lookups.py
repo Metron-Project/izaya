@@ -5,11 +5,11 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from functools import reduce
 from operator import or_
-from typing import Any, override
+from typing import Any, cast, override
 
 from django.contrib.admin.utils import lookup_spawns_duplicates
 from django.core.exceptions import ImproperlyConfigured, ValidationError
-from django.db.models import Case, Model, Q, QuerySet, Value, When
+from django.db.models import Case, Field, Model, Q, QuerySet, Value, When
 from django.http import HttpRequest
 from django.utils.translation import gettext_lazy as _
 
@@ -87,9 +87,9 @@ class ModelLookup(Lookup):
     queryset's existing order, then fall back to the primary key.
     """
 
-    model = None
-    search_fields = ()
-    rank_fields = ()
+    model: type[Model]
+    search_fields: Sequence[str] = ()
+    rank_fields: Sequence[str] = ()
     key_field = "pk"
 
     @property
@@ -150,7 +150,8 @@ class ModelLookup(Lookup):
         rank_order = "izaya_rank" if sql.standard_ordering else "-izaya_rank"
         if sql.extra_order_by:
             return queryset.extra(order_by=[rank_order, *sql.extra_order_by, "pk"])
-        ordering = sql.order_by or (self.model._meta.ordering if sql.default_ordering else ())
+        model_ordering = self.model._meta.ordering if sql.default_ordering else None
+        ordering = sql.order_by or model_ordering or ()
         # The primary key keeps the max_results cut-off stable when ties remain.
         return queryset.order_by(rank_order, *ordering, "pk")
 
@@ -171,7 +172,7 @@ class ModelLookup(Lookup):
 
     def _clean_key(self, key: str) -> Any:
         # A bound form re-renders whatever was submitted, including invalid keys.
-        field = self.model._meta.get_field(self.key_name)
+        field = cast("Field", self.model._meta.get_field(self.key_name))
         try:
             value = field.to_python(key)
             field.run_validators(value)

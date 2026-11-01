@@ -43,8 +43,9 @@ class LookupWidget(forms.Widget):
     def value_from_datadict(
         self, data: Mapping[str, Any], files: Mapping[str, Any], name: str
     ) -> list[str] | str | None:
-        if self.multiple and hasattr(data, "getlist"):
-            return data.getlist(name)
+        getlist = getattr(data, "getlist", None)
+        if self.multiple and getlist:
+            return getlist(name)
         return data.get(name)
 
     @override

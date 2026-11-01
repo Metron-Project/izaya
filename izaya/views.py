@@ -1,5 +1,7 @@
 """The search endpoint."""
 
+from typing import Any
+
 from django.core.exceptions import PermissionDenied
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import render
@@ -24,7 +26,7 @@ def search(request: HttpRequest, name: str) -> HttpResponse:
     if not query:
         return HttpResponse()
 
-    context = {"items": []}
+    context: dict[str, Any] = {"items": []}
     if len(query) < lookup.min_length:
         context["message"] = lookup.min_length_text % {"count": lookup.min_length}
     else:

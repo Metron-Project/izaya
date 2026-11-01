@@ -53,6 +53,11 @@ django_find_project = false
 pythonpath = ["."]
 testpaths = ["tests"]
 
+[tool.pyright]
+include = ["izaya"]
+pythonVersion = "3.14"
+typeCheckingMode = "standard"
+
 [tool.ruff]
 line-length = 100
 target-version = "py314"
@@ -125,7 +130,9 @@ convention = "pep257"
 
 [dependency-groups]
 dev = [
+    "django-stubs>=6.1.2",
     "pre-commit>=4.7.0",
+    "pyright>=1.1.414",
     "pytest-cov>=7.1.0",
     "pytest-django>=4.14.0",
     "ruff>=0.17.3",
