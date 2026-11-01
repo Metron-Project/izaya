@@ -1,13 +1,14 @@
 import pytest
 from django.core.exceptions import ImproperlyConfigured
 
-from izaya import Item, ModelLookup, register
+from izaya import Item, ModelLookup, lookups, register
 from izaya.lookups import registry
 
 from .lookups import (
     CharacterLookup,
     ColorLookup,
     ImprintLookup,
+    RankedCharacterLookup,
     TeamLookup,
     VisibleToStaffLookup,
 )
@@ -92,3 +93,110 @@ def test_search_across_a_to_many_relation_has_no_duplicates():
 
 def test_search_only_uses_distinct_when_it_is_needed():
     assert "DISTINCT" not in str(CharacterLookup().search("bat", None).query)
+
+
+def names(results):
+    return [result.name for result in results]
+
+
+@pytest.fixture
+def storms():
+    for name in (
+        "Acid Storm",
+        "Argos (Wildstorm)",
+        "Storm",
+        "Storm Boy",
+        "Stormzy",
+        "Zed Storm",
+    ):
+        Character.objects.create(name=name)
+
+
+@pytest.mark.django_db
+def test_rank_orders_by_tier_then_the_model_ordering(storms):
+    assert names(RankedCharacterLookup().search("storm", None)) == [
+        "Storm",
+        "Storm Boy",
+        "Stormzy",
+        "Acid Storm",
+        "Zed Storm",
+        "Argos (Wildstorm)",
+    ]
+
+
+@pytest.mark.django_db
+def test_rank_ties_keep_the_order_from_get_queryset(storms):
+    class Reversed(RankedCharacterLookup):
+        def get_queryset(self, request):
+            return super().get_queryset(request).order_by("-name")
+
+    assert names(Reversed().search("storm", None)) == [
+        "Storm",
+        "Stormzy",
+        "Storm Boy",
+        "Zed Storm",
+        "Acid Storm",
+        "Argos (Wildstorm)",
+    ]
+
+
+@pytest.mark.django_db
+def test_rank_uses_the_best_match_in_any_field():
+    Character.objects.create(name="Bat Girl")
+    Character.objects.create(name="Zed", alias="Bat")
+    lookup = type("Both", (RankedCharacterLookup,), {"rank_fields": ["name", "alias"]})()
+    assert names(lookup.search("bat", None)) == ["Zed", "Bat Girl"]
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("query", ["C++", "(C", "[C", "a|c", "a\\c", "#1 fan", "a-b", "a~c"])
+def test_rank_accepts_regex_syntax_in_the_search_text(query):
+    character = Character.objects.create(name=f"the {query}")
+    assert list(RankedCharacterLookup().search(query, None)) == [character]
+
+
+@pytest.mark.django_db
+def test_rank_matches_the_start_of_a_word_literally():
+    Character.objects.create(name="xabc")
+    Character.objects.create(name="xa.c")
+    Character.objects.create(name="the a.c")
+    assert names(RankedCharacterLookup().search("a.c", None)) == ["the a.c", "xa.c"]
+
+
+@pytest.mark.django_db
+def test_rank_skips_the_word_tier_on_an_unknown_database(storms, monkeypatch):
+    monkeypatch.setattr(lookups, "WORD_BOUNDARIES", {})
+    assert names(RankedCharacterLookup().search("storm", None)) == [
+        "Storm",
+        "Storm Boy",
+        "Stormzy",
+        "Acid Storm",
+        "Argos (Wildstorm)",
+        "Zed Storm",
+    ]
+
+
+@pytest.mark.django_db
+def test_rank_works_with_distinct():
+    bat_family = Team.objects.create(name="Bat Family")
+    bat_family.members.add(
+        Character.objects.create(name="Batman"),
+        Character.objects.create(name="Batgirl"),
+    )
+    outsiders = Team.objects.create(name="Outsiders")
+    outsiders.members.add(Character.objects.create(name="Bat Lash"))
+    exact = Team.objects.create(name="Bat")
+    lookup = type("Ranked", (TeamLookup,), {"rank_fields": ["name"]})()
+    results = lookup.search("bat", None)
+    assert "DISTINCT" in str(results.query)
+    assert list(results) == [exact, bat_family, outsiders]
+
+
+def test_rank_fields_cannot_span_a_to_many_relation():
+    lookup = type("Ranked", (TeamLookup,), {"rank_fields": ["members__name"]})()
+    with pytest.raises(ImproperlyConfigured, match="rank_fields"):
+        lookup.search("bat", None)
+
+
+def test_search_is_unranked_without_rank_fields():
+    assert "CASE" not in str(CharacterLookup().search("bat", None).query)

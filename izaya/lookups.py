@@ -1,15 +1,20 @@
 """Lookups define what a widget searches and how results are labelled."""
 
+import re
 from dataclasses import dataclass
 from functools import reduce
 from operator import or_
 
 from django.contrib.admin.utils import lookup_spawns_duplicates
 from django.core.exceptions import ImproperlyConfigured, ValidationError
-from django.db.models import Q
+from django.db import connections
+from django.db.models import Case, Q, Value, When
 from django.utils.translation import gettext_lazy as _
 
 registry = {}
+
+# Regex word boundaries by database vendor. Others skip the word-start rank.
+WORD_BOUNDARIES = {"mysql": r"\b", "postgresql": r"\y", "sqlite": r"\b"}
 
 
 @dataclass(frozen=True)
@@ -70,10 +75,16 @@ class ModelLookup(Lookup):
     record matches if any of them do. Each one receives the search text as is, so other
     fields need a ``search`` override. ``key_field`` names the unique field whose value is
     submitted, and must match the form field's ``to_field_name``.
+
+    ``rank_fields`` optionally names text fields, such as ``name__unaccent``, that put the
+    closest matches first. A record ranks by its best match in any of them: the whole value,
+    the start of the value, the start of a word, then everything else. Ties keep the
+    queryset's existing order.
     """
 
     model = None
     search_fields = ()
+    rank_fields = ()
     key_field = "pk"
 
     @property
@@ -99,7 +110,30 @@ class ModelLookup(Lookup):
         opts = self.model._meta
         if any(lookup_spawns_duplicates(opts, field) for field in self.search_fields):
             queryset = queryset.distinct()
-        return queryset
+        return self.rank(queryset, query)
+
+    def rank(self, queryset, query):
+        """Return ``queryset`` with the closest matches to ``query`` first."""
+        if not self.rank_fields:
+            return queryset
+        opts = self.model._meta
+        if any(lookup_spawns_duplicates(opts, field) for field in self.rank_fields):
+            # A record would get one rank per related row, which distinct() can't collapse.
+            raise ImproperlyConfigured(f"{type(self).__name__}.rank_fields can't span to-many.")
+        tiers = [("iexact", query), ("istartswith", query)]
+        if boundary := WORD_BOUNDARIES.get(connections[queryset.db].vendor):
+            tiers.append(("iregex", boundary + re.escape(query)))
+        cases = [
+            When(
+                reduce(or_, [Q(**{f"{field}__{lookup}": value}) for field in self.rank_fields]),
+                then=Value(tier),
+            )
+            for tier, (lookup, value) in enumerate(tiers)
+        ]
+        ordering = queryset.query.order_by or opts.ordering
+        # Selected rather than only ordered by, as SELECT DISTINCT requires.
+        queryset = queryset.annotate(izaya_rank=Case(*cases, default=Value(len(tiers))))
+        return queryset.order_by("izaya_rank", *ordering)
 
     def get_selected(self, keys):
         keys = [key for key in map(self._clean_key, keys) if key is not None]

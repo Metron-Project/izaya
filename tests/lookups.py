@@ -11,6 +11,14 @@ class CharacterLookup(ModelLookup):
 
 
 @register
+class RankedCharacterLookup(ModelLookup):
+    model = Character
+    search_fields = ["name__icontains", "alias__icontains"]
+    rank_fields = ["name"]
+    max_results = 2
+
+
+@register
 class PrivateLookup(ModelLookup):
     model = Character
     search_fields = ["name__icontains"]

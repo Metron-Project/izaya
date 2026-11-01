@@ -9,6 +9,8 @@
   field renders its selection in one query instead of two
 - Fix a single-value `LookupWidget` showing its placeholder beside the selected value: the
   placeholder is now removed while a value is selected and restored when it's removed
+- Add `rank_fields` and `rank()` to `ModelLookup`, so the closest matches come first and the best
+  match isn't lost past `max_results`
 
 ## 0.1.0 - 2026-10-31
 
