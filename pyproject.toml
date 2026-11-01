@@ -1,6 +1,6 @@
 [project]
 name = "izaya"
-version = "0.1.0"
+version = "0.1.1"
 description = "An htmx-powered autocomplete widget for Django forms"
 readme = "README.md"
 license = "GPL-3.0-or-later"
