@@ -57,8 +57,61 @@ testpaths = ["tests"]
 line-length = 100
 target-version = "py314"
 
+[tool.ruff.lint]
+# Added to ruff's defaults, which only cover part of most of these families.
+extend-select = [
+    "A",     # flake8-builtins
+    "B",     # flake8-bugbear
+    "C4",    # flake8-comprehensions
+    "C90",   # mccabe
+    "DJ",    # flake8-django
+    "DTZ",   # flake8-datetimez
+    "E",     # pycodestyle errors
+    "ERA",   # eradicate
+    "F",     # pyflakes
+    "FBT",   # flake8-boolean-trap
+    "FURB",  # refurb
+    "G",     # flake8-logging-format
+    "I",     # isort
+    "INP",   # flake8-no-pep420
+    "ISC",   # flake8-implicit-str-concat
+    "LOG",   # flake8-logging
+    "N",     # pep8-naming
+    "PERF",  # perflint
+    "PGH",   # pygrep-hooks
+    "PIE",   # flake8-pie
+    "PL",    # pylint
+    "PT",    # flake8-pytest-style
+    "PTH",   # flake8-use-pathlib
+    "RET",   # flake8-return
+    "RSE",   # flake8-raise
+    "RUF",   # ruff
+    "S",     # flake8-bandit
+    "SIM",   # flake8-simplify
+    "SLF",   # flake8-self
+    "T20",   # flake8-print
+    "TID",   # flake8-tidy-imports
+    "TRY",   # tryceratops
+    "UP",    # pyupgrade
+    "W",     # pycodestyle warnings
+]
+ignore = [
+    "TRY003",  # Short messages at the raise site read better than an exception per message.
+]
+
+[tool.ruff.lint.flake8-self]
+# Underscored, but documented public API on Django models.
+extend-ignore-names = ["_default_manager", "_meta"]
+
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["RUF012"]
+"tests/*" = [
+    "DJ008",    # Test models only need __str__ where a test reads it.
+    "PLR2004",  # Literal expected values are the point of an assertion.
+    "RUF012",
+    "S101",     # pytest asserts.
+    "S105",     # The test settings' SECRET_KEY.
+    "SLF001",   # Tests may inspect private state.
+]
 
 [dependency-groups]
 dev = [

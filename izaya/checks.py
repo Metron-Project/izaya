@@ -14,5 +14,5 @@ def check_rank_fields(app_configs, **kwargs):
             id="izaya.E001",
         )
         for lookup in registry.values()
-        if issubclass(lookup, ModelLookup) and lookup._spawns_duplicates(lookup.rank_fields)
+        if issubclass(lookup, ModelLookup) and lookup.spawns_duplicates(lookup.rank_fields)
     ]

@@ -106,7 +106,7 @@ class ModelLookup(Lookup):
             raise ImproperlyConfigured(f"{type(self).__name__} must define search_fields.")
         conditions = [Q(**{field: query}) for field in self.search_fields]
         queryset = self.get_queryset(request).filter(reduce(or_, conditions))
-        if self._spawns_duplicates(self.search_fields):
+        if self.spawns_duplicates(self.search_fields):
             queryset = queryset.distinct()
         return self.rank(queryset, query)
 
@@ -146,7 +146,7 @@ class ModelLookup(Lookup):
         return queryset.order_by(rank_order, *ordering, "pk")
 
     @classmethod
-    def _spawns_duplicates(cls, fields):
+    def spawns_duplicates(cls, fields):
         return any(lookup_spawns_duplicates(cls.model._meta, field) for field in fields)
 
     def get_selected(self, keys):
