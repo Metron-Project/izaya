@@ -1,11 +1,16 @@
 """System checks for registered lookups."""
 
+from collections.abc import Sequence
+from typing import Any
+
+from django.apps import AppConfig
 from django.core.checks import Error
 
 from .lookups import ModelLookup, registry
 
 
-def check_rank_fields(app_configs, **kwargs):
+def check_rank_fields(app_configs: Sequence[AppConfig] | None, **kwargs: Any) -> list[Error]:
+    """Return an error for each lookup whose ``rank_fields`` span a to-many relation."""
     return [
         Error(
             f"{lookup.__name__}.rank_fields can't span a to-many relation.",

@@ -61,9 +61,11 @@ target-version = "py314"
 # Added to ruff's defaults, which only cover part of most of these families.
 extend-select = [
     "A",     # flake8-builtins
+    "ANN",   # flake8-annotations
     "B",     # flake8-bugbear
     "C4",    # flake8-comprehensions
     "C90",   # mccabe
+    "D",     # pydocstyle
     "DJ",    # flake8-django
     "DTZ",   # flake8-datetimez
     "E",     # pycodestyle errors
@@ -96,6 +98,9 @@ extend-select = [
     "W",     # pycodestyle warnings
 ]
 ignore = [
+    "ANN401",  # Widget values and lookup results are opaque to izaya.
+    "D106",    # Nested Media and Meta classes are Django configuration.
+    "D107",    # The class docstring covers __init__.
     "TRY003",  # Short messages at the raise site read better than an exception per message.
 ]
 
@@ -103,8 +108,13 @@ ignore = [
 # Underscored, but documented public API on Django models.
 extend-ignore-names = ["_default_manager", "_meta"]
 
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = [
+    "ANN",      # Test names and fixtures already say what these would.
+    "D",        # Likewise.
     "DJ008",    # Test models only need __str__ where a test reads it.
     "PLR2004",  # Literal expected values are the point of an assertion.
     "RUF012",

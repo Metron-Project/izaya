@@ -1,16 +1,19 @@
 """Lookups define what a widget searches and how results are labelled."""
 
 import re
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from functools import reduce
 from operator import or_
+from typing import Any, override
 
 from django.contrib.admin.utils import lookup_spawns_duplicates
 from django.core.exceptions import ImproperlyConfigured, ValidationError
-from django.db.models import Case, Q, Value, When
+from django.db.models import Case, Model, Q, QuerySet, Value, When
+from django.http import HttpRequest
 from django.utils.translation import gettext_lazy as _
 
-registry = {}
+registry: dict[str, type[Lookup]] = {}
 
 # Word boundary tokens aren't portable, and only work beside a word character anyway.
 WORD_START = r"(^|\W)"
@@ -18,11 +21,13 @@ WORD_START = r"(^|\W)"
 
 @dataclass(frozen=True)
 class Item:
+    """A result as the templates render it: the submitted key and the visible label."""
+
     key: str
     label: str
 
 
-def register(lookup):
+def register[T: type[Lookup]](lookup: T) -> T:
     """Make a lookup reachable through the search endpoint."""
     name = lookup.__name__
     if registry.get(name, lookup) is not lookup:
@@ -46,15 +51,15 @@ class Lookup:
     more_results_text = _("Showing the first %(count)s results. Narrow your search to see more.")
     min_length_text = _("Type at least %(count)s characters.")
 
-    def has_access(self, request):
+    def has_access(self, request: HttpRequest) -> bool:
         """Return whether ``request`` may search this lookup."""
         return True
 
-    def search(self, query, request):
+    def search(self, query: str, request: HttpRequest) -> Sequence[Any] | QuerySet:
         """Return a sliceable sequence of results matching ``query``."""
         raise NotImplementedError
 
-    def get_selected(self, keys):
+    def get_selected(self, keys: Sequence[str]) -> Sequence[Any]:
         """Return the results for ``keys`` when rendering a form's value.
 
         There is no request here, so this must not depend on the current user. Submitted
@@ -62,7 +67,8 @@ class Lookup:
         """
         raise NotImplementedError
 
-    def to_item(self, result):
+    def to_item(self, result: Any) -> Item:
+        """Return the ``Item`` for a result from ``search`` or ``get_selected``."""
         key, label = result
         return Item(str(key), str(label))
 
@@ -87,21 +93,24 @@ class ModelLookup(Lookup):
     key_field = "pk"
 
     @property
-    def key_name(self):
+    def key_name(self) -> str:
+        """The name of the field behind ``key_field``, with ``pk`` resolved."""
         return self.model._meta.pk.name if self.key_field == "pk" else self.key_field
 
-    def get_base_queryset(self):
+    def get_base_queryset(self) -> QuerySet:
         """Return the records used for labels, such as with ``select_related`` applied."""
         return self.model._default_manager.all()
 
-    def get_queryset(self, request):
+    def get_queryset(self, request: HttpRequest) -> QuerySet:
         """Return the records ``request`` may search."""
         return self.get_base_queryset()
 
-    def label(self, record):
+    def label(self, record: Model) -> str:
+        """Return the text shown for ``record``."""
         return str(record)
 
-    def search(self, query, request):
+    @override
+    def search(self, query: str, request: HttpRequest) -> QuerySet:
         if not self.search_fields:
             raise ImproperlyConfigured(f"{type(self).__name__} must define search_fields.")
         conditions = [Q(**{field: query}) for field in self.search_fields]
@@ -110,7 +119,7 @@ class ModelLookup(Lookup):
             queryset = queryset.distinct()
         return self.rank(queryset, query)
 
-    def rank(self, queryset, query):
+    def rank(self, queryset: QuerySet, query: str) -> QuerySet:
         """Return ``queryset`` with the closest matches to ``query`` first."""
         if not self.rank_fields:
             return queryset
@@ -146,18 +155,21 @@ class ModelLookup(Lookup):
         return queryset.order_by(rank_order, *ordering, "pk")
 
     @classmethod
-    def spawns_duplicates(cls, fields):
+    def spawns_duplicates(cls, fields: Iterable[str]) -> bool:
+        """Return whether any of ``fields`` can match one record through several rows."""
         return any(lookup_spawns_duplicates(cls.model._meta, field) for field in fields)
 
-    def get_selected(self, keys):
+    @override
+    def get_selected(self, keys: Sequence[str]) -> list[Model]:
         keys = [key for key in map(self._clean_key, keys) if key is not None]
         records = self.get_base_queryset().in_bulk(keys, field_name=self.key_field)
         return [records[key] for key in keys if key in records]
 
-    def to_item(self, result):
+    @override
+    def to_item(self, result: Model) -> Item:
         return Item(str(getattr(result, self.key_field)), self.label(result))
 
-    def _clean_key(self, key):
+    def _clean_key(self, key: str) -> Any:
         # A bound form re-renders whatever was submitted, including invalid keys.
         field = self.model._meta.get_field(self.key_name)
         try:
