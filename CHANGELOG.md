@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.3.0 - 2026-11-01
 
 - Add an `IZAYA_LOGIN_REQUIRED` setting that denies anonymous searches on every lookup, with a
   `has_access` override to opt one out, and the system check `izaya.W001` for a missing
