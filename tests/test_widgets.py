@@ -1,11 +1,12 @@
 import pytest
 from django import forms
 from django.core.exceptions import ImproperlyConfigured
+from django.db import NotSupportedError
 from django.http import QueryDict
 
 from izaya import LookupWidget, ModelLookup
 
-from .lookups import CharacterLookup, ColorLookup, ImprintLookup
+from .lookups import CharacterLookup, ColorLookup, ImprintLookup, TeamLookup
 from .models import Character, Comic, Imprint, Team
 
 
@@ -184,6 +185,96 @@ def test_value_inside_the_field_queryset_renders():
         ">Visible</span>"
         in ScopedForm(initial={"leader": visible.pk}, visible=["Visible"]).as_div()
     )
+
+
+def field_form(field_class, queryset, lookup, **widget_kwargs):
+    """Return a form class with one field named ``field``."""
+    widget = LookupWidget(lookup, **widget_kwargs)
+    field = field_class(queryset, widget=widget, required=False)
+    return type("FieldForm", (forms.Form,), {"field": field})
+
+
+@pytest.mark.django_db
+def test_unfiltered_field_renders_a_selection_in_one_query(django_assert_num_queries):
+    batman = Character.objects.create(name="Batman")
+    form = field_form(forms.ModelChoiceField, Character.objects.all(), CharacterLookup)
+    bound = form(initial={"field": batman.pk})
+    with django_assert_num_queries(1):
+        assert ">Batman</span>" in str(bound["field"])
+
+
+@pytest.mark.django_db
+def test_unfiltered_multiple_field_renders_in_one_query(django_assert_num_queries):
+    keys = [Character.objects.create(name=name).pk for name in ("Batman", "Robin")]
+    form = field_form(
+        forms.ModelMultipleChoiceField, Character.objects.all(), CharacterLookup, multiple=True
+    )
+    bound = form(initial={"field": keys})
+    with django_assert_num_queries(1):
+        html = str(bound["field"])
+    assert ">Batman</span>" in html
+    assert ">Robin</span>" in html
+
+
+@pytest.mark.django_db
+def test_model_form_field_renders_a_selection_in_one_query(django_assert_num_queries):
+    batman = Character.objects.create(name="Batman")
+    bound = TeamForm(instance=Team.objects.create(name="Solo", leader=batman))
+    with django_assert_num_queries(1):
+        assert ">Batman</span>" in str(bound["leader"])
+
+
+@pytest.mark.django_db
+def test_filtered_field_hides_labels_on_a_bound_form(django_assert_num_queries):
+    hidden = Character.objects.create(name="Hidden")
+    form = ScopedForm(QueryDict(f"leader={hidden.pk}"), visible=["Visible"])
+    assert not form.is_valid()
+    with django_assert_num_queries(2):
+        assert "Hidden" not in str(form["leader"])
+
+
+@pytest.mark.django_db
+def test_empty_field_queryset_shows_no_labels():
+    hidden = Character.objects.create(name="Hidden")
+    form = field_form(forms.ModelChoiceField, Character.objects.none(), CharacterLookup)
+    assert "Hidden" not in str(form(initial={"field": hidden.pk})["field"])
+
+
+@pytest.mark.django_db
+def test_plain_lookup_keys_are_still_checked():
+    Character.objects.create(pk=1, name="Batman")
+    form = field_form(
+        forms.ModelMultipleChoiceField, Character.objects.all(), ColorLookup, multiple=True
+    )
+    html = str(form(initial={"field": ["1", "2"]})["field"])
+    assert ">Red</span>" in html
+    assert "Green" not in html
+
+
+@pytest.mark.django_db
+def test_lookup_over_another_model_is_still_checked():
+    team = Team.objects.create(name="Hidden")
+    form = field_form(forms.ModelChoiceField, Character.objects.all(), TeamLookup)
+    assert "Hidden" not in str(form(initial={"field": team.pk})["field"])
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    ("restrict", "error"),
+    [
+        (lambda queryset: queryset[:1], TypeError),
+        (lambda queryset: queryset.difference(queryset.filter(name="Hidden")), NotSupportedError),
+    ],
+    ids=["sliced", "combined"],
+)
+def test_restricted_querysets_without_filters_are_not_skipped(restrict, error):
+    Character.objects.create(name="Visible")
+    hidden = Character.objects.create(name="Hidden")
+    queryset = restrict(Character.objects.order_by("pk"))
+    assert not queryset.query.has_filters()
+    form = field_form(forms.ModelChoiceField, queryset, CharacterLookup)
+    with pytest.raises(error):
+        str(form(initial={"field": hidden.pk})["field"])
 
 
 @pytest.mark.django_db

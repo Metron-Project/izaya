@@ -5,6 +5,8 @@
 - Fix the results staying white in dark mode: colours from `IZAYA_CLASSES["listbox"]` now override
   `izaya/layout.css` whatever order the stylesheets load in
 - Add `--izaya-listbox-background` and `--izaya-listbox-color` custom properties
+- Skip the field queryset check when it can't drop anything, so a `ModelLookup` on an unfiltered
+  field renders its selection in one query instead of two
 
 ## 0.1.0 - 2026-10-31
 
