@@ -47,12 +47,24 @@
     active.scrollIntoView({ block: "nearest" });
   };
 
+  // Removed rather than hidden, so screen readers don't announce a prompt for a filled field.
+  const syncPlaceholder = (root) => {
+    if ("izayaMultiple" in root.dataset) return;
+    const input = part(root, "input");
+    if (chips(root).length) {
+      input.removeAttribute("placeholder");
+    } else {
+      input.placeholder = input.dataset.izayaPlaceholder ?? "";
+    }
+  };
+
   const removeChip = (root, chip) => {
     const detail = {
       key: chipKey(chip),
       label: part(chip, "chip-label").textContent,
     };
     chip.remove();
+    syncPlaceholder(root);
     notify(root, "remove", detail);
   };
 
@@ -61,6 +73,7 @@
     chip.querySelector("input").value = key;
     part(chip, "chip-label").textContent = label;
     part(root, "selection").append(chip);
+    syncPlaceholder(root);
     notify(root, "select", { key, label });
   };
 

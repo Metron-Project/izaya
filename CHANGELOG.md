@@ -7,6 +7,8 @@
 - Add `--izaya-listbox-background` and `--izaya-listbox-color` custom properties
 - Skip the field queryset check when it can't drop anything, so a `ModelLookup` on an unfiltered
   field renders its selection in one query instead of two
+- Fix a single-value `LookupWidget` showing its placeholder beside the selected value: the
+  placeholder is now removed while a value is selected and restored when it's removed
 
 ## 0.1.0 - 2026-10-31
 

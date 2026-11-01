@@ -86,6 +86,37 @@ def test_lookup_placeholder_and_no_required_attribute():
     assert lookup_widget.use_required_attribute(None) is False
 
 
+def test_single_value_without_a_selection_keeps_its_placeholder():
+    html = render(LookupWidget(CharacterLookup, attrs={"placeholder": "Find"}))
+    assert ' placeholder="Find"' in html
+    assert 'data-izaya-placeholder="Find"' in html
+
+
+@pytest.mark.django_db
+def test_single_value_with_a_selection_leaves_the_placeholder_to_the_script():
+    character = Character.objects.create(name="Batman")
+    html = render(LookupWidget(CharacterLookup, attrs={"placeholder": "Find"}), character.pk)
+    assert ' placeholder="Find"' not in html
+    assert 'data-izaya-placeholder="Find"' in html
+
+
+@pytest.mark.django_db
+def test_multiple_with_a_selection_keeps_its_placeholder():
+    character = Character.objects.create(name="Batman")
+    lookup_widget = LookupWidget(CharacterLookup, multiple=True, attrs={"placeholder": "Find"})
+    html = render(lookup_widget, [character.pk])
+    assert ' placeholder="Find"' in html
+    assert "data-izaya-placeholder" not in html
+
+
+@pytest.mark.django_db
+def test_rejected_value_keeps_the_placeholder():
+    hidden = Character.objects.create(name="Hidden")
+    form = ScopedForm(initial={"leader": hidden.pk}, visible=["Visible"])
+    form.fields["leader"].widget.attrs["placeholder"] = "Find"
+    assert ' placeholder="Find"' in str(form["leader"])
+
+
 def test_classes_come_from_settings_and_the_widget(settings):
     settings.IZAYA_CLASSES = {"input": "input", "chip": "tag"}
     html = render(LookupWidget(CharacterLookup, classes={"chip": "badge", "option": "item"}))
