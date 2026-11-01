@@ -58,8 +58,8 @@ class IssueForm(forms.ModelForm):
 | Attribute or method | Purpose |
 | --- | --- |
 | `min_length`, `max_results`, `max_query_length`, `placeholder` | Search behaviour, defaulting to `3`, `100`, `100` and `""` |
-| `no_results_text`, `more_results_text`, `min_length_text`, `access_denied_text` | Messages shown in the results |
-| `has_access(request)` | Return `False` to answer searches with a 403, which shows `access_denied_text` |
+| `no_results_text`, `more_results_text`, `min_length_text`, `access_denied_text`, `login_required_text` | Messages shown in the results |
+| `has_access(request)` | Return `False` to answer searches with a 403, which shows `login_required_text` to anonymous users and `access_denied_text` to everyone else |
 | `get_queryset(request)` | The records this request may search |
 | `get_base_queryset()` | The records used for labels, for example with `select_related` |
 | `label(record)` | The text shown for a record |
@@ -106,7 +106,7 @@ IZAYA_LOGIN_REQUIRED = True
 ```
 
 Anonymous searches then get a 403, so a session that expires while a form is open shows
-`access_denied_text` in the results. This reads `request.user`, which needs
+`login_required_text` in the results. This reads `request.user`, which needs
 `AuthenticationMiddleware`. The system check `izaya.W001` reports if it's missing from `MIDDLEWARE`.
 To keep one lookup public, for example on a public page, override `has_access`:
 
@@ -123,8 +123,11 @@ A `has_access` override replaces the setting, so call `super().has_access(reques
 on top of it.
 
 Django's `LoginRequiredMiddleware` takes over for anonymous users: it redirects their searches to
-the login page before izaya sees them. The setting, `has_access` and `access_denied_text` then have
-no effect on those searches, so a lookup can't opt out to stay public.
+the login page before izaya sees them. The setting, `has_access` and `login_required_text` then
+have no effect on those searches, so a lookup can't opt out to stay public.
+
+Only a `False` from `has_access` shows a message. A `PermissionDenied` raised by a lookup still gets
+the project's 403 page, which the widget ignores, so the results stay closed.
 
 The setting only controls who can search, not what they find. A per-user `get_queryset` only limits
 what can be searched. Limit the form field's `queryset` to the same records, usually in the form's

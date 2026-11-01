@@ -1,3 +1,5 @@
+from django.core.exceptions import PermissionDenied
+
 from izaya import Lookup, ModelLookup, register
 
 from .models import Character, Imprint, Team
@@ -25,6 +27,26 @@ class PrivateLookup(ModelLookup):
 
     def has_access(self, request):
         return False
+
+
+@register
+class StaffLookup(ModelLookup):
+    model = Character
+    search_fields = ["name__icontains"]
+
+    def has_access(self, request):
+        return super().has_access(request) and request.user.is_staff
+
+
+@register
+class RaisingLookup(Lookup):
+    min_length = 1
+
+    def has_access(self, request):
+        raise PermissionDenied
+
+    def get_selected(self, keys):
+        return []
 
 
 @register

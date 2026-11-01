@@ -4,7 +4,7 @@ from django.urls import include, path
 
 from izaya import LookupWidget
 
-from .lookups import ColorLookup, MarkupLookup, PrivateLookup
+from .lookups import ColorLookup, MarkupLookup, PrivateLookup, RaisingLookup
 
 
 class BrowserForm(forms.Form):
@@ -25,6 +25,7 @@ class BrowserForm(forms.Form):
     )
     markup = forms.CharField(required=False, widget=LookupWidget(MarkupLookup))
     private = forms.CharField(required=False, widget=LookupWidget(PrivateLookup))
+    raising = forms.CharField(required=False, widget=LookupWidget(RaisingLookup))
     readonly = forms.CharField(
         required=False,
         widget=LookupWidget(ColorLookup, multiple=True, attrs={"readonly": True}),

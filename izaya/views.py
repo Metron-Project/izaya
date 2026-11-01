@@ -18,9 +18,12 @@ def search(request: HttpRequest, name: str) -> HttpResponse:
         raise Http404
     lookup = registry[name]()
     if not lookup.has_access(request):
-        # Rendered rather than raised, so izaya.js has a message to show for the 403.
-        context = {"items": [], "message": lookup.access_denied_text}
-        return render(request, "izaya/options.html", context, status=403)
+        # Rendered rather than raised, so izaya.js has a message to show for the 403. The header
+        # sets it apart from error pages, which must not end up in the results.
+        context = {"items": [], "message": lookup.denied_text(request)}
+        response = render(request, "izaya/options.html", context, status=403)
+        response.headers["X-Izaya-Denied"] = "true"
+        return response
 
     # PostgreSQL rejects NUL characters in query parameters.
     query = request.GET.get("q", "").replace("\x00", "").strip()[: lookup.max_query_length]

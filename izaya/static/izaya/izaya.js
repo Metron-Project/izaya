@@ -107,9 +107,9 @@
     }
   };
 
-  // htmx drops error responses, but a denied search carries a message for the user.
+  // htmx drops error responses, but a search denied by has_access carries a message for the user.
   document.addEventListener("htmx:beforeSwap", (event) => {
-    if (event.detail.xhr.status !== 403) return;
+    if (!event.detail.xhr.getResponseHeader("X-Izaya-Denied")) return;
     if (!event.detail.target.matches("[data-izaya-listbox]")) return;
     event.detail.shouldSwap = true;
     event.detail.isError = false;

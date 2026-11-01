@@ -304,9 +304,21 @@ def test_denied_search_shows_the_message(page):
     widget = Widget(page, "private")
     widget.input.send_keys("bat")
     widget.wait.until(lambda _: widget.listbox.is_displayed())
-    assert "You don't have access to this search." in widget.listbox.text
+    assert "Log in to use this search." in widget.listbox.text
     assert widget.options == []
     assert page.execute_script("return window.errors") == 0
+
+
+def test_error_page_stays_out_of_the_results(page):
+    page.execute_script(
+        "document.addEventListener('htmx:afterRequest', () => { window.answered = true; });"
+    )
+    widget = Widget(page, "raising")
+    widget.input.send_keys("bat")
+    widget.wait.until(lambda _: page.execute_script("return window.answered"))
+    assert not widget.listbox.is_displayed()
+    assert widget.listbox.text == ""
+    assert page.title == "izaya"
 
 
 def test_loading_the_script_twice_acts_once(page):
