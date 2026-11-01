@@ -105,7 +105,7 @@ class ModelLookup(Lookup):
         """Return the records ``request`` may search."""
         return self.get_base_queryset()
 
-    def label(self, record: Model) -> str:
+    def label(self, record: Any) -> str:
         """Return the text shown for ``record``."""
         return str(record)
 
@@ -161,13 +161,13 @@ class ModelLookup(Lookup):
         return any(lookup_spawns_duplicates(cls.model._meta, field) for field in fields)
 
     @override
-    def get_selected(self, keys: Sequence[str]) -> list[Model]:
+    def get_selected(self, keys: Sequence[str]) -> Sequence[Model]:
         keys = [key for key in map(self._clean_key, keys) if key is not None]
         records = self.get_base_queryset().in_bulk(keys, field_name=self.key_field)
         return [records[key] for key in keys if key in records]
 
     @override
-    def to_item(self, result: Model) -> Item:
+    def to_item(self, result: Any) -> Item:
         return Item(str(getattr(result, self.key_field)), self.label(result))
 
     def _clean_key(self, key: str) -> Any:
