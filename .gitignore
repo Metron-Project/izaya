@@ -12,3 +12,9 @@ wheels/
 # Test coverage
 .coverage
 htmlcov/
+
+# Ignore AI agents
+CLAUDE.md
+
+# The example project's database.
+example/db.sqlite3

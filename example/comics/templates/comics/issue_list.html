@@ -1,0 +1,24 @@
+{% extends "comics/base.html" %}
+
+{% block title %}Issues{% endblock %}
+
+{% block content %}
+  <h1>Issues</h1>
+  <p><a class="button" href="{% url 'issue-create' %}">New issue</a></p>
+  <table>
+    <thead>
+      <tr><th>Issue</th><th>Language</th><th>Characters</th></tr>
+    </thead>
+    <tbody>
+      {% for issue in object_list %}
+        <tr>
+          <td><a href="{{ issue.get_absolute_url }}">{{ issue }}</a></td>
+          <td>{{ issue.get_language_display }}</td>
+          <td>{{ issue.characters.all|join:", " }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="3">No issues yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

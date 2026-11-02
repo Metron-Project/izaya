@@ -188,6 +188,11 @@ Overriding from a project-level template directory requires
 Widgets added to the page later need no setup beyond htmx processing them. Each widget dispatches
 bubbling `izaya:select` and `izaya:remove` events, with `key` and `label` in `event.detail`.
 
+## Example
+
+[`example/`](example/) is a small Django project that uses the widget on every kind of field it
+supports. Its [README](example/README.md) explains how to run it.
+
 ## Development
 
 ```

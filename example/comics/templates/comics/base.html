@@ -1,0 +1,17 @@
+{% load static %}<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Comics{% endblock %} · izaya example</title>
+    {# izaya needs htmx 2. Serve your own copy in a real project. #}
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.11/dist/htmx.min.js"></script>
+    {# Optional: floats the results over the page instead of pushing the content below down. #}
+    <link rel="stylesheet" href="{% static 'izaya/layout.css' %}">
+    <link rel="stylesheet" href="{% static 'comics/site.css' %}">
+    {% block head %}{% endblock %}
+  </head>
+  <body>
+    <main>{% block content %}{% endblock %}</main>
+  </body>
+</html>
