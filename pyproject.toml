@@ -117,6 +117,15 @@ extend-ignore-names = ["_default_manager", "_meta"]
 convention = "pep257"
 
 [tool.ruff.lint.per-file-ignores]
+"example/*" = [
+    "D104",     # Empty package markers.
+    "D105",     # __str__ needs no explanation.
+    "RUF012",   # Lists in Meta and lookups are Django configuration.
+]
+"example/*/migrations/*" = [
+    "ANN",      # Generated, or written in the same style.
+    "D",        # Likewise.
+]
 "tests/*" = [
     "ANN",      # Test names and fixtures already say what these would.
     "D",        # Likewise.
