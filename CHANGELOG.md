@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Add an example project in `example/` that uses `LookupWidget` on a `ForeignKey`, a
+  `ManyToManyField` and a `CharField` with choices, with lookups over models and over a plain list,
+  and shows the selected values inside the search box
+
 ## v0.3.0 - 2026-11-01
 
 - Add an `IZAYA_LOGIN_REQUIRED` setting that denies anonymous searches on every lookup, with a
