@@ -67,6 +67,14 @@ class Lookup:
             return str(self.login_required_text)
         return str(self.access_denied_text)
 
+    def clean_query(self, query: str) -> str:
+        """Return the search text for the raw ``q`` parameter.
+
+        The default strips surrounding whitespace. Override this to keep whitespace that means
+        something to ``search``, such as a leading space.
+        """
+        return query.strip()
+
     def search(self, query: str, request: HttpRequest) -> Sequence[Any] | QuerySet:
         """Return a sliceable sequence of results matching ``query``."""
         raise NotImplementedError

@@ -5,6 +5,8 @@
 - Add an example project in `example/` that uses `LookupWidget` on a `ForeignKey`, a
   `ManyToManyField` and a `CharField` with choices, with lookups over models and over a plain list,
   and shows the selected values inside the search box
+- Add `clean_query()` to `Lookup`, so a lookup can keep whitespace that means something to its
+  `search`, such as a leading space. It strips surrounding whitespace by default, as before
 
 ## v0.3.0 - 2026-11-01
 

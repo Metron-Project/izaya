@@ -59,6 +59,7 @@ class IssueForm(forms.ModelForm):
 | --- | --- |
 | `min_length`, `max_results`, `max_query_length`, `placeholder` | Search behaviour, defaulting to `3`, `100`, `100` and `""` |
 | `no_results_text`, `more_results_text`, `min_length_text`, `access_denied_text`, `login_required_text` | Messages shown in the results |
+| `clean_query(query)` | Turn the raw search text into the text passed to `search`, by default stripping surrounding whitespace. `min_length` and `max_query_length` apply to its result, and whitespace alone is never searched |
 | `has_access(request)` | Return `False` to answer searches with a 403, which shows `login_required_text` to anonymous users and `access_denied_text` to everyone else |
 | `get_queryset(request)` | The records this request may search |
 | `get_base_queryset()` | The records used for labels, for example with `select_related` |

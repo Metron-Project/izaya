@@ -26,8 +26,10 @@ def search(request: HttpRequest, name: str) -> HttpResponse:
         return response
 
     # PostgreSQL rejects NUL characters in query parameters.
-    query = request.GET.get("q", "").replace("\x00", "").strip()[: lookup.max_query_length]
-    if not query:
+    query = request.GET.get("q", "").replace("\x00", "")
+    query = lookup.clean_query(query)[: lookup.max_query_length]
+    # Whitespace alone is never a search, whatever clean_query keeps.
+    if not query.strip():
         return HttpResponse()
 
     context: dict[str, Any] = {"items": []}

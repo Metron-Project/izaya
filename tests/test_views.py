@@ -64,6 +64,26 @@ def test_nul_characters_are_removed_from_the_query(client):
     assert "Batman" in client.get(url("CharacterLookup"), {"q": "bat\x00"}).text
 
 
+def test_clean_query_strips_whitespace_by_default(client):
+    Character.objects.create(name="Batman")
+    assert "Batman" in client.get(url("CharacterLookup"), {"q": "  bat  "}).text
+
+
+def test_search_receives_the_text_from_clean_query(client):
+    Character.objects.bulk_create(Character(name=name) for name in ("Wayne Bruce", "Bruce Wayne"))
+    response = client.get(url("LaterWordLookup"), {"q": " wayne"})
+    assert 'data-izaya-label="Bruce Wayne"' in response.text
+    assert 'data-izaya-label="Wayne Bruce"' not in response.text
+
+
+def test_whitespace_kept_by_clean_query_is_not_a_search(client):
+    assert client.get(url("LaterWordLookup"), {"q": "   "}).content == b""
+
+
+def test_min_length_counts_the_text_from_clean_query(client):
+    assert "Type at least 3 characters." in client.get(url("LaterWordLookup"), {"q": " w"}).text
+
+
 def test_plain_lookup_searches(client):
     assert 'data-izaya-label="Red"' in client.get(url("ColorLookup"), {"q": "r"}).text
 

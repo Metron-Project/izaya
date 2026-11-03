@@ -104,3 +104,15 @@ class MarkupLookup(Lookup):
 
     def get_selected(self, keys):
         return []
+
+
+@register
+class LaterWordLookup(ModelLookup):
+    """Treats a leading space as a search for a word after the first."""
+
+    model = Character
+    search_fields = ["name__icontains"]
+
+    def clean_query(self, query):
+        text = query.strip()
+        return f" {text}" if text and query[0].isspace() else text
