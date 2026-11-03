@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.4.0 - 2026-11-03
 
 - Add an example project in `example/` that uses `LookupWidget` on a `ForeignKey`, a
   `ManyToManyField` and a `CharField` with choices, with lookups over models and over a plain list,
