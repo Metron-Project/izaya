@@ -66,6 +66,8 @@ def test_get_selected_ignores_per_request_restrictions():
 
 @pytest.mark.django_db
 def test_get_selected_keeps_a_zero_primary_key():
+    if not connection.features.allows_auto_pk_0:
+        pytest.skip("The database can't store a zero AutoField.")
     character = Character.objects.create(pk=0, name="Zero")
     assert CharacterLookup().get_selected(["0"]) == [character]
 

@@ -1,7 +1,7 @@
 import pytest
 from django import forms
 from django.core.exceptions import ImproperlyConfigured
-from django.db import NotSupportedError
+from django.db import NotSupportedError, connection
 from django.http import QueryDict
 
 from izaya import LookupWidget, ModelLookup
@@ -319,6 +319,8 @@ def test_oversized_key_does_not_crash_the_re_render():
 
 @pytest.mark.django_db
 def test_zero_primary_key_renders_a_chip():
+    if not connection.features.allows_auto_pk_0:
+        pytest.skip("The database can't store a zero AutoField.")
     Character.objects.create(pk=0, name="Zero")
     assert ">Zero</span>" in render(LookupWidget(CharacterLookup), 0)
 

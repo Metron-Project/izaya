@@ -88,8 +88,10 @@ ranks by its best match in any of them: the whole value, then the start of the v
 of a word, then everything else. Ties keep the order of `get_queryset`, or the model's
 `Meta.ordering`, then fall back to the primary key. `rank_fields` can't cross a to-many relation,
 which the system check `izaya.E001` reports. Every match has to be ranked before the results are cut
-off, so measure this on large tables. Ranking is tested on SQLite and PostgreSQL, but not MySQL or
-MariaDB.
+off, so measure this on large tables. Ranking is tested on SQLite, PostgreSQL, MySQL and MariaDB.
+On MySQL and MariaDB the default `_ai_ci` collations ignore accents when matching the whole value or
+its start, but not the start of a word, so for `cafe` "Café" ranks first while "Le Café" ranks
+with everything else.
 
 A `search` override keeps its own order unless it calls `rank`, which raises `ImproperlyConfigured`
 for a sliced or combined queryset, or one using `distinct()` with field names.
