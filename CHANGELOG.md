@@ -8,6 +8,8 @@
 - Add `clean_query()` to `Lookup`, so a lookup can keep whitespace that means something to its
   `search`, such as a leading space. It strips surrounding whitespace by default, as before
 - Test against MySQL and MariaDB in CI, and document how their default collations affect ranking
+- Publish the documentation on Read the Docs, with an API reference, and shorten the README to a
+  quick start
 
 ## v0.3.0 - 2026-11-01
 

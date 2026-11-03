@@ -29,6 +29,7 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/Metron-Project/izaya"
+Documentation = "https://izaya.readthedocs.io/"
 "Bug Tracker" = "https://github.com/Metron-Project/izaya/issues"
 Changelog = "https://github.com/Metron-Project/izaya/blob/main/CHANGELOG.md"
 
@@ -117,6 +118,9 @@ extend-ignore-names = ["_default_manager", "_meta"]
 convention = "pep257"
 
 [tool.ruff.lint.per-file-ignores]
+"docs/conf.py" = [
+    "INP001",   # Sphinx loads conf.py by path, not as a package.
+]
 "example/*" = [
     "D104",     # Empty package markers.
     "D105",     # __str__ needs no explanation.
@@ -146,4 +150,9 @@ dev = [
     "pytest-django>=4.14.0",
     "ruff>=0.17.3",
     "selenium>=4.52.0",
+]
+docs = [
+    "furo>=2025.12.19",
+    "myst-parser>=5.1.0",
+    "sphinx>=9.2.0",
 ]

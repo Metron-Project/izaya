@@ -12,7 +12,12 @@ from .lookups import Item, Lookup, ModelLookup, registry
 
 
 class LookupWidget(forms.Widget):
-    """Form widget that picks one or more values from a registered lookup."""
+    """Form widget that picks one or more values from a registered lookup.
+
+    ``lookup`` is a ``Lookup`` subclass decorated with ``@register``. ``multiple=True`` selects
+    any number of values, for a multiple choice field. ``classes`` maps the widget's elements to CSS
+    classes, replacing the ``IZAYA_CLASSES`` setting's value for each key it sets.
+    """
 
     template_name = "izaya/widget.html"
 

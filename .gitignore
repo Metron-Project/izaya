@@ -9,6 +9,9 @@ wheels/
 # Virtual environments
 .venv
 
+# Built documentation
+docs/_build/
+
 # Test coverage
 .coverage
 htmlcov/
