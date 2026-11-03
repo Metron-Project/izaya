@@ -7,6 +7,7 @@
   and shows the selected values inside the search box
 - Add `clean_query()` to `Lookup`, so a lookup can keep whitespace that means something to its
   `search`, such as a leading space. It strips surrounding whitespace by default, as before
+- Test against MySQL and MariaDB in CI, and document how their default collations affect ranking
 
 ## v0.3.0 - 2026-11-01
 
