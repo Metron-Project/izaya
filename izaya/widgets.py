@@ -1,6 +1,6 @@
 """The form widget."""
 
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from typing import Any, override
 
 from django import forms
@@ -90,9 +90,15 @@ class LookupWidget(forms.Widget):
 
     def _selected_items(self, lookup: Lookup, value: Any) -> list[Item]:
         items = [lookup.to_item(result) for result in lookup.get_selected(_keys(value))]
-        field = getattr(getattr(self, "choices", None), "field", None)
-        if field is None:
+        choices = getattr(self, "choices", None)
+        if choices is None:
+            # A field without choices, such as a CharField, has nothing to check labels against.
             return items
+        field = getattr(choices, "field", None)
+        if field is None:
+            # A bound form renders whatever was submitted, so only show labels the field accepts.
+            allowed = _choice_keys(choices)
+            return [item for item in items if item.key in allowed]
 
         key_name = field.to_field_name or field.queryset.model._meta.pk.name
         if isinstance(lookup, ModelLookup) and lookup.key_name != key_name:
@@ -114,6 +120,17 @@ class LookupWidget(forms.Widget):
         allowed = field.queryset.filter(**{f"{key_name}__in": [item.key for item in items]})
         allowed = {str(key) for key in allowed.values_list(key_name, flat=True)}
         return [item for item in items if item.key in allowed]
+
+
+def _choice_keys(choices: Iterable[Any]) -> set[str]:
+    keys: set[str] = set()
+    for value, label in choices:
+        if isinstance(label, list | tuple):
+            # An option group, whose label is its list of (value, label) pairs.
+            keys.update(str(key) for key, _ in label)
+        else:
+            keys.add(str(value))
+    return keys
 
 
 def _keys(value: Any) -> list[str]:

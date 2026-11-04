@@ -72,4 +72,5 @@ A `search` override keeps its own order unless it calls `rank`, which raises `Im
 for a sliced or combined queryset, or one using `distinct()` with field names.
 
 For data that isn't a model, subclass `Lookup` and implement `search` and `get_selected`, returning
-`(key, label)` pairs.
+`(key, label)` pairs. On a field with `choices`, the widget only renders labels for keys among them;
+see [Private data](private-data.md) for fields without choices.

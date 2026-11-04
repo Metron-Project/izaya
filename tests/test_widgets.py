@@ -308,6 +308,42 @@ def test_restricted_querysets_without_filters_are_not_skipped(restrict, error):
         str(form(initial={"field": hidden.pk})["field"])
 
 
+def choice_form(choices, **widget_kwargs):
+    field_class = forms.MultipleChoiceField if widget_kwargs.get("multiple") else forms.ChoiceField
+    widget = LookupWidget(ColorLookup, **widget_kwargs)
+    field = field_class(choices=choices, widget=widget, required=False)
+    return type("ChoiceForm", (forms.Form,), {"field": field})
+
+
+def test_choice_field_hides_labels_outside_its_choices():
+    form = choice_form([("1", "Red")], multiple=True)(QueryDict("field=1&field=2"))
+    assert not form.is_valid()
+    html = str(form["field"])
+    assert ">Red</span>" in html
+    assert "Green" not in html
+
+
+def test_choice_field_accepts_keys_in_option_groups():
+    form = choice_form([("Warm", [(1, "Red")]), ("2", "Green")], multiple=True)
+    html = str(form(initial={"field": ["1", "2", "3"]})["field"])
+    assert ">Red</span>" in html
+    assert ">Green</span>" in html
+    assert "Blue" not in html
+
+
+def test_choice_field_with_callable_choices_is_checked():
+    form = choice_form(lambda: [("2", "Green")])
+    html = str(form(initial={"field": "1"})["field"])
+    assert "Red" not in html
+
+
+def test_field_without_choices_renders_whatever_get_selected_returns():
+    form = type(
+        "CharForm", (forms.Form,), {"field": forms.CharField(widget=LookupWidget(ColorLookup))}
+    )
+    assert ">Green</span>" in str(form(QueryDict("field=2"))["field"])
+
+
 @pytest.mark.django_db
 def test_oversized_key_does_not_crash_the_re_render():
     form = TeamForm(QueryDict(f"name=X&leader={'9' * 30}"))
