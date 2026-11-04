@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Render labels on a field with `choices` only for keys among them, as a model choice field
+  already does with its queryset, so a bound form no longer shows labels for submitted keys the
+  field rejects. Document that a field without choices, such as a `CharField`, can't hide them
+- Harden the GitHub workflows: give the test workflow a read-only token, pin actions to commit
+  SHAs, stop persisting checkout credentials, and publish to PyPI from a `pypi` environment without
+  the dependency cache
+
 ## v0.4.0 - 2026-11-03
 
 - Add an example project in `example/` that uses `LookupWidget` on a `ForeignKey`, a

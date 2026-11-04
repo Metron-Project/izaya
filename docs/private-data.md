@@ -44,3 +44,10 @@ class ListForm(forms.ModelForm):
 
 The field rejects submitted values outside that queryset, and the widget won't render their labels.
 A stored value outside it isn't shown either, so saving the form without that value clears it.
+
+On a field with `choices`, such as a `ChoiceField` or a model field with `choices`, the widget
+likewise renders only labels for keys among those choices. A field with neither a queryset nor
+choices, such as a `CharField`, gives the widget nothing to check against. A bound form then
+renders the label `get_selected` returns for any submitted key, so anyone can read the labels of
+records they can't search by submitting their keys. `get_selected` has no request to limit by, so
+use a model or choice field for private data rather than a `CharField`.
