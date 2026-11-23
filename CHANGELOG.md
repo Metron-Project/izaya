@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.4.1 - 2026-11-23
 
 - Render labels on a field with `choices` only for keys among them, as a model choice field
   already does with its queryset, so a bound form no longer shows labels for submitted keys the
