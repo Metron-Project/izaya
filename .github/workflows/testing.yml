@@ -28,6 +28,13 @@ jobs:
         run: uv run ruff check .
       - name: Check types
         run: uv run pyright
+      # A string added, changed or removed in izaya must reach the catalogs in the same change.
+      # The tests check each .mo matches its .po; this checks each .po matches the code.
+      - name: Check translation catalogs are up to date
+        run: |
+          command -v xgettext || sudo apt-get install --yes gettext
+          cd izaya && uv run django-admin makemessages --all --no-location
+          git diff --exit-code -I '^"POT-Creation-Date' locale
 
   docs:
     name: Docs

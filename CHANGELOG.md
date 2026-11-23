@@ -8,6 +8,7 @@
 - Harden the GitHub workflows: give the test workflow a read-only token, pin actions to commit
   SHAs, stop persisting checkout credentials, and publish to PyPI from a `pypi` environment without
   the dependency cache
+- Add an Italian translation
 
 ## v0.4.0 - 2026-11-03
 
