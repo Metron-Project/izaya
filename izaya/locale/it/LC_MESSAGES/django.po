@@ -1,0 +1,37 @@
+# Italian translation catalog for izaya.
+# Copyright (C) 2026 Metron Project
+# This file is distributed under the same license as the izaya package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: izaya\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-23 10:05-0500\n"
+"PO-Revision-Date: 2026-11-23 10:10-0500\n"
+"Last-Translator: Metron Project\n"
+"Language-Team: Italian\n"
+"Language: it\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "No results found."
+msgstr "Nessun risultato trovato."
+
+#, python-format
+msgid "Showing the first %(count)s results. Narrow your search to see more."
+msgstr "Sono mostrati i primi %(count)s risultati. Restringi la ricerca per vederne altri."
+
+#, python-format
+msgid "Type at least %(count)s characters."
+msgstr "Digita almeno %(count)s caratteri."
+
+msgid "You don't have access to this search."
+msgstr "Non hai accesso a questa ricerca."
+
+msgid "Log in to use this search."
+msgstr "Accedi per usare questa ricerca."
+
+msgid "Remove"
+msgstr "Rimuovi"

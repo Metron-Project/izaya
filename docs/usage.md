@@ -74,3 +74,45 @@ for a sliced or combined queryset, or one using `distinct()` with field names.
 For data that isn't a model, subclass `Lookup` and implement `search` and `get_selected`, returning
 `(key, label)` pairs. On a field with `choices`, the widget only renders labels for keys among them;
 see [Private data](private-data.md) for fields without choices.
+
+## Translations
+
+izaya's text is marked for translation, and izaya ships catalogs for these languages:
+
+- Italian (`it`)
+
+Nothing needs to be set up beyond Django's usual
+[translation settings](https://docs.djangoproject.com/en/stable/topics/i18n/translation/), such as
+`LANGUAGES` and `LocaleMiddleware`: Django finds izaya's catalogs because `izaya` is in
+`INSTALLED_APPS`.
+
+The widget renders its remove button's label in the language active when the form is rendered, and
+the search view renders its messages in the language of the search request. With
+`LocaleMiddleware`, both are the user's language. If you choose the language by URL prefix with
+`i18n_patterns`, include `izaya.urls` inside them too, so that searches carry the prefix.
+
+The translated text is the remove button's label, `"Remove"`, and the lookup's messages:
+
+| Attribute | Default |
+| --- | --- |
+| `no_results_text` | `"No results found."` |
+| `more_results_text` | `"Showing the first %(count)s results. Narrow your search to see more."` |
+| `min_length_text` | `"Type at least %(count)s characters."` |
+| `access_denied_text` | `"You don't have access to this search."` |
+| `login_required_text` | `"Log in to use this search."` |
+
+To change one lookup's messages, set these attributes on it, wrapped in `gettext_lazy` to keep
+them translated. To change a translation everywhere, or add one for a language izaya doesn't ship,
+put entries with the same `msgid` in a catalog in one of your `LOCALE_PATHS`, which Django reads
+before an app's catalogs. `makemessages` doesn't extract strings from installed packages, and marks
+entries it can't find in your code as obsolete, so keep these in a directory of their own, compiled
+with `compilemessages`:
+
+```python
+LOCALE_PATHS = [
+    BASE_DIR / "locale",  # your project's catalogs, which makemessages writes
+    BASE_DIR / "locale_overrides",  # entries for izaya's strings, written by hand
+]
+```
+
+A translation of izaya into a new language is also welcome as a pull request.
